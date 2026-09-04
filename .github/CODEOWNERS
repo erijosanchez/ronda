@@ -1,0 +1,11 @@
+# Revision obligatoria. Ver RONDA-PLAN-MAESTRO.md sec. 12.4
+*                       @erijosanchez
+
+# Las piezas donde un error cuesta caro llevan revision explicita.
+/src/Platform/          @erijosanchez
+/src/Identity/          @erijosanchez
+/Dockerfile             @erijosanchez
+/docker-compose.yml     @erijosanchez
+/.github/               @erijosanchez
+/deptrac.yaml           @erijosanchez
+/phpstan.neon           @erijosanchez

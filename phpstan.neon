@@ -1,0 +1,26 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    level: 8
+
+    paths:
+        - app
+        - src
+        - config
+        - database
+        - routes
+
+    excludePaths:
+        - bootstrap/cache
+        - storage
+        - vendor
+
+    # Prohibido crecer. Un baseline que crece es deuda disfrazada de proceso.
+    # Ver docs/adr/0011-larastan-nivel-8.md
+    checkMissingIterableValueType: true
+    checkGenericClassInNonGenericObjectType: true
+    treatPhpDocTypesAsCertain: false
+    reportUnmatchedIgnoredErrors: true
+
+    ignoreErrors: []

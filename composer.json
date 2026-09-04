@@ -1,0 +1,151 @@
+{
+    "$schema": "https://getcomposer.org/schema.json",
+    "name": "ronda/app",
+    "type": "project",
+    "description": "Ronda - control operativo de sucursales (SaaS multi-tenant)",
+    "keywords": [
+        "saas",
+        "multi-tenant",
+        "operations",
+        "laravel"
+    ],
+    "license": "proprietary",
+    "require": {
+        "php": "^8.4",
+        "laravel/fortify": "^1.39",
+        "laravel/framework": "^12.0",
+        "laravel/horizon": "^5.48",
+        "laravel/octane": "^2.19",
+        "laravel/pennant": "^1.26",
+        "laravel/reverb": "^1.11",
+        "laravel/tinker": "^2.10.1",
+        "livewire/flux": "^2.18",
+        "livewire/livewire": "^4.4",
+        "predis/predis": "^3.6",
+        "spatie/laravel-activitylog": "^5.0",
+        "spatie/laravel-data": "^4.23",
+        "spatie/laravel-model-states": "^2.14",
+        "spatie/laravel-permission": "^8.3",
+        "spatie/laravel-query-builder": "^7.3",
+        "spatie/laravel-settings": "^3.9",
+        "stancl/tenancy": "^3.10"
+    },
+    "require-dev": {
+        "barryvdh/laravel-ide-helper": "^3.7",
+        "deptrac/deptrac": "^4.7",
+        "driftingly/rector-laravel": "^2.6",
+        "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.11",
+        "laravel/pail": "^1.2.2",
+        "laravel/pint": "^1.24",
+        "laravel/sail": "^1.41",
+        "laravel/telescope": "^5.23",
+        "mockery/mockery": "^1.6",
+        "nunomaduro/collision": "^8.6",
+        "pestphp/pest": "^3.8",
+        "pestphp/pest-plugin-laravel": "^3.2",
+        "phpunit/phpunit": "^11.5.50",
+        "rector/rector": "^2.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "app/",
+            "Ronda\\": "src/",
+            "Database\\Factories\\": "database/factories/",
+            "Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "setup": [
+            "composer install",
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
+            "@php artisan key:generate",
+            "@php artisan migrate --force",
+            "npm install",
+            "npm run build"
+        ],
+        "dev": [
+            "Composer\\Config::disableProcessTimeout",
+            "npx concurrently -c \"#93c5fd,#c4b5fd,#fb7185,#fdba74\" \"php artisan serve\" \"php artisan queue:listen --tries=1 --timeout=0\" \"php artisan pail --timeout=0\" \"npm run dev\" --names=server,queue,logs,vite --kill-others"
+        ],
+        "test": [
+            "@php vendor/bin/pest --parallel"
+        ],
+        "post-autoload-dump": [
+            "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+            "@php artisan package:discover --ansi"
+        ],
+        "post-update-cmd": [
+            "@php artisan vendor:publish --tag=laravel-assets --ansi --force"
+        ],
+        "post-root-package-install": [
+            "@php -r \"file_exists('.env') || copy('.env.example', '.env');\""
+        ],
+        "post-create-project-cmd": [
+            "@php artisan key:generate --ansi",
+            "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
+            "@php artisan migrate --graceful --ansi"
+        ],
+        "pre-package-uninstall": [
+            "Illuminate\\Foundation\\ComposerScripts::prePackageUninstall"
+        ],
+        "lint": [
+            "@php vendor/bin/pint --test"
+        ],
+        "fix": [
+            "@php vendor/bin/pint"
+        ],
+        "stan": [
+            "@php vendor/bin/phpstan analyse --memory-limit=2G"
+        ],
+        "deptrac": [
+            "@php vendor/bin/deptrac analyse --config-file=deptrac.yaml"
+        ],
+        "rector": [
+            "@php vendor/bin/rector process --dry-run"
+        ],
+        "check": [
+            "@lint",
+            "@stan",
+            "@deptrac",
+            "@test"
+        ]
+    },
+    "extra": {
+        "laravel": {
+            "dont-discover": []
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true,
+            "php-http/discovery": true
+        },
+        "platform": {
+            "php": "8.4.13",
+            "ext-pcntl": "8.4.13",
+            "ext-pgsql": "8.4.13",
+            "ext-pdo_pgsql": "8.4.13",
+            "ext-intl": "8.4.13",
+            "ext-gd": "8.4.13",
+            "ext-zip": "8.4.13",
+            "ext-bcmath": "8.4.13",
+            "ext-exif": "8.4.13",
+            "ext-sodium": "8.4.13",
+            "ext-redis": "6.1.0",
+            "ext-posix": "8.4.13",
+            "ext-sockets": "8.4.13",
+            "ext-ftp": "8.4.13"
+        }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}

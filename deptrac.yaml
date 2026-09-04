@@ -1,0 +1,48 @@
+# Limites entre capas y entre modulos.
+# La regla de dependencia apunta siempre hacia adentro:
+# Presentation -> Application -> Domain.  Infrastructure implementa, no dirige.
+# Ver RONDA-PLAN-MAESTRO.md sec. 6.1
+deptrac:
+  paths:
+    - ./src
+
+  layers:
+    - name: Domain
+      collectors:
+        - type: directory
+          value: src/[^/]+/Domain/.*
+
+    - name: Application
+      collectors:
+        - type: directory
+          value: src/[^/]+/Application/.*
+
+    - name: Infrastructure
+      collectors:
+        - type: directory
+          value: src/[^/]+/Infrastructure/.*
+
+    - name: Presentation
+      collectors:
+        - type: directory
+          value: src/[^/]+/Presentation/.*
+
+  ruleset:
+    # El dominio no depende de nada del proyecto: ni Eloquent, ni HTTP, ni facades.
+    Domain: ~
+
+    # La aplicacion orquesta el dominio.
+    Application:
+      - Domain
+
+    # La infraestructura implementa contratos del dominio y de la aplicacion.
+    Infrastructure:
+      - Domain
+      - Application
+
+    # La presentacion solo habla con la aplicacion.
+    Presentation:
+      - Application
+      - Domain
+
+  skip_violations: {}

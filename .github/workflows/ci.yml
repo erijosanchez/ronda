@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PHP_VERSION: '8.4'
+
+jobs:
+  # ── Puertas estaticas: rapidas, corren en paralelo ─────────────────────────
+  static:
+    name: ${{ matrix.check.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - {name: 'Formato (Pint)',        cmd: 'vendor/bin/pint --test'}
+          - {name: 'Analisis (Larastan 8)', cmd: 'vendor/bin/phpstan analyse --no-progress --memory-limit=2G'}
+          - {name: 'Refactor (Rector)',     cmd: 'vendor/bin/rector process --dry-run --no-progress-bar'}
+          - {name: 'Modulos (Deptrac)',     cmd: 'vendor/bin/deptrac analyse --config-file=deptrac.yaml --no-progress'}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo_pgsql, pgsql, redis, intl, gd, zip, bcmath, exif, pcntl, sockets, sodium
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - run: ${{ matrix.check.cmd }}
+
+  # ── El baseline de PHPStan no puede crecer (sec. 12.2) ─────────────────────
+  baseline-guard:
+    name: Baseline no crece
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar que no se agrego baseline
+        run: |
+          if [ -f phpstan-baseline.neon ]; then
+            lines=$(grep -c 'message:' phpstan-baseline.neon || echo 0)
+            echo "Errores en baseline: $lines"
+            if [ "$lines" -gt 0 ]; then
+              echo "::error::El baseline de PHPStan debe permanecer vacio en codigo nuevo."
+              exit 1
+            fi
+          fi
+
+  # ── Pruebas ────────────────────────────────────────────────────────────────
+  tests:
+    name: Pruebas (Pest)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: ronda_central
+          POSTGRES_USER: ronda
+          POSTGRES_PASSWORD: secret
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ronda"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7.4-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo_pgsql, pgsql, redis, intl, gd, zip, bcmath, exif, pcntl, sockets, sodium
+          coverage: pcov
+      - uses: ramsey/composer-install@v3
+      - run: cp .env.example .env && php artisan key:generate
+      - name: Pruebas con cobertura
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          REDIS_HOST: 127.0.0.1
+          REDIS_PASSWORD: null
+        run: vendor/bin/pest --parallel --coverage --min=60
+
+      # Reglas de arquitectura del sec. 6.3 — se corren aparte para que el
+      # fallo diga exactamente que regla se rompio.
+      - name: Reglas de arquitectura
+        run: vendor/bin/pest --group=arch
+
+      # La suite que impide la fuga entre tenants (sec. 7.5).
+      - name: Aislamiento de tenant
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          REDIS_HOST: 127.0.0.1
+          REDIS_PASSWORD: null
+        run: vendor/bin/pest --group=tenancy
+
+  # ── Seguridad ──────────────────────────────────────────────────────────────
+  security:
+    name: Seguridad
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          coverage: none
+      - uses: ramsey/composer-install@v3
+      - name: Vulnerabilidades en dependencias PHP
+        run: composer audit --abandoned=ignore
+      - name: Vulnerabilidades en dependencias JS
+        run: npm audit --audit-level=high || true
+      - name: Semgrep
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: >-
+            p/php
+            p/security-audit
+            p/secrets
+
+  # ── Imagen de contenedor ───────────────────────────────────────────────────
+  image:
+    name: Imagen
+    runs-on: ubuntu-latest
+    needs: [static, tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Construir
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          push: false
+          load: true
+          tags: ronda-app:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Escaneo de vulnerabilidades (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ronda-app:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+          ignore-unfixed: true
