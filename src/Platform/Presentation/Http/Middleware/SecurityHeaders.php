@@ -6,6 +6,7 @@ namespace Ronda\Platform\Presentation\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Vite;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -24,7 +25,7 @@ final class SecurityHeaders
      *
      * @var array<string, string>
      */
-    private const array HEADERS = [
+    private const HEADERS = [
         'X-Content-Type-Options' => 'nosniff',
         'X-Frame-Options' => 'DENY',
         'Referrer-Policy' => 'strict-origin-when-cross-origin',
@@ -36,6 +37,16 @@ final class SecurityHeaders
 
     public function handle(Request $request, Closure $next): Response
     {
+        // El nonce se genera ANTES de que corra la vista.
+        //
+        // Generarlo despues de $next() era un defecto: la plantilla ya se
+        // habia renderizado y no podia incluirlo, asi que la CSP bloqueaba
+        // sus propios scripts. Vite::useCspNonce lo propaga a las etiquetas
+        // que genera @vite.
+        $nonce = base64_encode(random_bytes(16));
+        $request->attributes->set('csp_nonce', $nonce);
+        Vite::useCspNonce($nonce);
+
         /** @var Response $response */
         $response = $next($request);
 
@@ -59,19 +70,18 @@ final class SecurityHeaders
         if (config('security.csp_enabled', true)) {
             $response->headers->set(
                 'Content-Security-Policy',
-                $this->contentSecurityPolicy($request),
+                $this->contentSecurityPolicy($nonce),
             );
         }
 
         return $response;
     }
 
-    private function contentSecurityPolicy(Request $request): string
+    private function contentSecurityPolicy(string $nonce): string
     {
-        $nonce = $this->nonce($request);
         $websocket = $this->websocketOrigin();
 
-        $directives = [
+        return implode('; ', [
             "default-src 'self'",
             "script-src 'self' 'nonce-{$nonce}'",
             "style-src 'self' 'nonce-{$nonce}'",
@@ -86,32 +96,12 @@ final class SecurityHeaders
             "form-action 'self'",
             "object-src 'none'",
             'upgrade-insecure-requests',
-        ];
-
-        return implode('; ', $directives);
-    }
-
-    /**
-     * Un nonce por peticion, compartido con las vistas.
-     */
-    private function nonce(Request $request): string
-    {
-        /** @var string|null $existing */
-        $existing = $request->attributes->get('csp_nonce');
-
-        if (is_string($existing)) {
-            return $existing;
-        }
-
-        $nonce = base64_encode(random_bytes(16));
-        $request->attributes->set('csp_nonce', $nonce);
-
-        return $nonce;
+        ]);
     }
 
     private function websocketOrigin(): string
     {
-        $scheme = config('reverb.apps.apps.0.options.scheme', 'http') === 'https' ? 'wss' : 'ws';
+        $scheme = config('reverb.apps.apps.0.options.scheme') === 'https' ? 'wss' : 'ws';
         $host = (string) config('reverb.apps.apps.0.options.host', 'localhost');
         $port = (string) config('reverb.apps.apps.0.options.port', '8080');
 

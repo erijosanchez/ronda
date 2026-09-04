@@ -91,6 +91,11 @@ docker compose exec app composer check   # pint + phpstan + deptrac + pest
 
 Y la checklist completa del PR (`.github/pull_request_template.md`).
 
+## Estado del trabajo
+
+Antes de empezar, lee **`docs/HANDOFF.md`**: dice donde se quedo la sesion
+anterior, que esta verificado y que esta bloqueado.
+
 ## Decisiones ya tomadas
 
 No las reabras sin un ADR nuevo. Estan en `docs/adr/`:

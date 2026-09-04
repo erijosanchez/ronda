@@ -77,12 +77,12 @@ return [
         'timeout' => 60000,
     ],
     'features' => [
-        Features::registration(),
+        // Features::registration(),  // fase 2: onboarding self-service
         Features::resetPasswords(),
-        Features::emailVerification(),
+        // Features::emailVerification(),  // fase 2: onboarding self-service
         Features::updateProfileInformation(),
         Features::updatePasswords(),
         Features::twoFactorAuthentication(),
-        Features::passkeys(),
+        // Features::passkeys(),  // fase 2: onboarding self-service
     ],
 ];
