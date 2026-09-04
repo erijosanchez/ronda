@@ -48,9 +48,11 @@ RUN install-php-extensions \
         opcache \
         sodium
 
-# Chromium para la generacion de PDF (spatie/laravel-pdf).
-RUN apk add --no-cache chromium nss freetype harfbuzz ca-certificates ttf-freefont
-ENV CHROME_PATH=/usr/bin/chromium-browser
+# Chromium NO va aqui a proposito.
+# Arrastra 149 paquetes (GTK, LLVM) y multiplica el tamano de la imagen que
+# corre en cada nodo de aplicacion. La generacion de PDF se resuelve en un
+# servicio aparte, en cola y con concurrencia limitada.
+# Ver RONDA-PLAN-MAESTRO.md sec. 18, riesgo 9.
 
 WORKDIR /app
 
