@@ -9,17 +9,17 @@ declare(strict_types=1);
 // con el usuario del tenant A apuntando a recursos del tenant B y exige 403
 // o 404 en todas.
 
-it('mantiene separadas la conexion central y la de tenant', function () {
+it('mantiene separadas la conexion central y la de tenant', function (): void {
     expect(config('database.default'))->toBe('pgsql')
         ->and(config('tenancy.database.central_connection'))->toBe('pgsql');
 })->group('tenancy');
 
-it('nombra las bases de tenant con un prefijo propio', function () {
+it('nombra las bases de tenant con un prefijo propio', function (): void {
     expect(config('tenancy.database.prefix'))
         ->not->toBeEmpty('Sin prefijo, una base de tenant puede colisionar con la central.');
 })->group('tenancy');
 
-it('no comparte la cache entre tenants', function () {
+it('no comparte la cache entre tenants', function (): void {
     expect(config('tenancy.cache.tag_base'))
         ->not->toBeEmpty('Sin etiqueta por tenant, la cache filtra datos entre clientes.');
 })->group('tenancy');

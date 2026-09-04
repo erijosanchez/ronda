@@ -16,10 +16,11 @@ parameters:
         - storage
         - vendor
 
-    # Prohibido crecer. Un baseline que crece es deuda disfrazada de proceso.
-    # Ver docs/adr/0011-larastan-nivel-8.md
-    checkMissingIterableValueType: true
-    checkGenericClassInNonGenericObjectType: true
+    # checkMissingIterableValueType y checkGenericClassInNonGenericObjectType
+    # desaparecieron en PHPStan 2.x: van implicitas desde el nivel 6.
+    #
+    # Sin baseline. Un baseline que crece es deuda disfrazada de proceso, y la
+    # CI tiene una puerta que falla si alguien lo introduce.
     treatPhpDocTypesAsCertain: false
     reportUnmatchedIgnoredErrors: true
 

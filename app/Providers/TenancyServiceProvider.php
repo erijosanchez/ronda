@@ -4,100 +4,142 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Stancl\JobPipeline\JobPipeline;
-use Stancl\Tenancy\Events;
-use Stancl\Tenancy\Jobs;
-use Stancl\Tenancy\Listeners;
-use Stancl\Tenancy\Middleware;
+use Stancl\Tenancy\Events\BootstrappingTenancy;
+use Stancl\Tenancy\Events\CreatingDomain;
+use Stancl\Tenancy\Events\CreatingTenant;
+use Stancl\Tenancy\Events\DatabaseCreated;
+use Stancl\Tenancy\Events\DatabaseDeleted;
+use Stancl\Tenancy\Events\DatabaseMigrated;
+use Stancl\Tenancy\Events\DatabaseRolledBack;
+use Stancl\Tenancy\Events\DatabaseSeeded;
+use Stancl\Tenancy\Events\DeletingDomain;
+use Stancl\Tenancy\Events\DeletingTenant;
+use Stancl\Tenancy\Events\DomainCreated;
+use Stancl\Tenancy\Events\DomainDeleted;
+use Stancl\Tenancy\Events\DomainSaved;
+use Stancl\Tenancy\Events\DomainUpdated;
+use Stancl\Tenancy\Events\EndingTenancy;
+use Stancl\Tenancy\Events\InitializingTenancy;
+use Stancl\Tenancy\Events\RevertedToCentralContext;
+use Stancl\Tenancy\Events\RevertingToCentralContext;
+use Stancl\Tenancy\Events\SavingDomain;
+use Stancl\Tenancy\Events\SavingTenant;
+use Stancl\Tenancy\Events\SyncedResourceChangedInForeignDatabase;
+use Stancl\Tenancy\Events\SyncedResourceSaved;
+use Stancl\Tenancy\Events\TenancyBootstrapped;
+use Stancl\Tenancy\Events\TenancyEnded;
+use Stancl\Tenancy\Events\TenancyInitialized;
+use Stancl\Tenancy\Events\TenantCreated;
+use Stancl\Tenancy\Events\TenantDeleted;
+use Stancl\Tenancy\Events\TenantSaved;
+use Stancl\Tenancy\Events\TenantUpdated;
+use Stancl\Tenancy\Events\UpdatingDomain;
+use Stancl\Tenancy\Events\UpdatingTenant;
+use Stancl\Tenancy\Jobs\CreateDatabase;
+use Stancl\Tenancy\Jobs\DeleteDatabase;
+use Stancl\Tenancy\Jobs\MigrateDatabase;
+use Stancl\Tenancy\Listeners\BootstrapTenancy;
+use Stancl\Tenancy\Listeners\RevertToCentralContext;
+use Stancl\Tenancy\Listeners\UpdateSyncedResource;
+use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
+use Stancl\Tenancy\Middleware\InitializeTenancyByDomainOrSubdomain;
+use Stancl\Tenancy\Middleware\InitializeTenancyByPath;
+use Stancl\Tenancy\Middleware\InitializeTenancyByRequestData;
+use Stancl\Tenancy\Middleware\InitializeTenancyBySubdomain;
+use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 class TenancyServiceProvider extends ServiceProvider
 {
     // By default, no namespace is used to support the callable array syntax.
     public static string $controllerNamespace = '';
 
-    public function events()
+    /**
+     * Mapa de evento de dominio -> escuchadores. Los valores mezclan
+     * class-strings, closures y JobPipeline, de ahi el tipo abierto.
+     *
+     * @return array<class-string, list<mixed>>
+     */
+    public function events(): array
     {
         return [
             // Tenant events
-            Events\CreatingTenant::class => [],
-            Events\TenantCreated::class => [
+            CreatingTenant::class => [],
+            TenantCreated::class => [
                 JobPipeline::make([
-                    Jobs\CreateDatabase::class,
-                    Jobs\MigrateDatabase::class,
+                    CreateDatabase::class,
+                    MigrateDatabase::class,
                     // Jobs\SeedDatabase::class,
 
                     // Your own jobs to prepare the tenant.
                     // Provision API keys, create S3 buckets, anything you want!
 
-                ])->send(function (Events\TenantCreated $event) {
-                    return $event->tenant;
-                })->shouldBeQueued(false), // `false` by default, but you probably want to make this `true` for production.
+                ])->send(fn (TenantCreated $event) => $event->tenant)->shouldBeQueued(false), // `false` by default, but you probably want to make this `true` for production.
             ],
-            Events\SavingTenant::class => [],
-            Events\TenantSaved::class => [],
-            Events\UpdatingTenant::class => [],
-            Events\TenantUpdated::class => [],
-            Events\DeletingTenant::class => [],
-            Events\TenantDeleted::class => [
+            SavingTenant::class => [],
+            TenantSaved::class => [],
+            UpdatingTenant::class => [],
+            TenantUpdated::class => [],
+            DeletingTenant::class => [],
+            TenantDeleted::class => [
                 JobPipeline::make([
-                    Jobs\DeleteDatabase::class,
-                ])->send(function (Events\TenantDeleted $event) {
-                    return $event->tenant;
-                })->shouldBeQueued(false), // `false` by default, but you probably want to make this `true` for production.
+                    DeleteDatabase::class,
+                ])->send(fn (TenantDeleted $event) => $event->tenant)->shouldBeQueued(false), // `false` by default, but you probably want to make this `true` for production.
             ],
 
             // Domain events
-            Events\CreatingDomain::class => [],
-            Events\DomainCreated::class => [],
-            Events\SavingDomain::class => [],
-            Events\DomainSaved::class => [],
-            Events\UpdatingDomain::class => [],
-            Events\DomainUpdated::class => [],
-            Events\DeletingDomain::class => [],
-            Events\DomainDeleted::class => [],
+            CreatingDomain::class => [],
+            DomainCreated::class => [],
+            SavingDomain::class => [],
+            DomainSaved::class => [],
+            UpdatingDomain::class => [],
+            DomainUpdated::class => [],
+            DeletingDomain::class => [],
+            DomainDeleted::class => [],
 
             // Database events
-            Events\DatabaseCreated::class => [],
-            Events\DatabaseMigrated::class => [],
-            Events\DatabaseSeeded::class => [],
-            Events\DatabaseRolledBack::class => [],
-            Events\DatabaseDeleted::class => [],
+            DatabaseCreated::class => [],
+            DatabaseMigrated::class => [],
+            DatabaseSeeded::class => [],
+            DatabaseRolledBack::class => [],
+            DatabaseDeleted::class => [],
 
             // Tenancy events
-            Events\InitializingTenancy::class => [],
-            Events\TenancyInitialized::class => [
-                Listeners\BootstrapTenancy::class,
+            InitializingTenancy::class => [],
+            TenancyInitialized::class => [
+                BootstrapTenancy::class,
             ],
 
-            Events\EndingTenancy::class => [],
-            Events\TenancyEnded::class => [
-                Listeners\RevertToCentralContext::class,
+            EndingTenancy::class => [],
+            TenancyEnded::class => [
+                RevertToCentralContext::class,
             ],
 
-            Events\BootstrappingTenancy::class => [],
-            Events\TenancyBootstrapped::class => [],
-            Events\RevertingToCentralContext::class => [],
-            Events\RevertedToCentralContext::class => [],
+            BootstrappingTenancy::class => [],
+            TenancyBootstrapped::class => [],
+            RevertingToCentralContext::class => [],
+            RevertedToCentralContext::class => [],
 
             // Resource syncing
-            Events\SyncedResourceSaved::class => [
-                Listeners\UpdateSyncedResource::class,
+            SyncedResourceSaved::class => [
+                UpdateSyncedResource::class,
             ],
 
             // Fired only when a synced resource is changed in a different DB than the origin DB (to avoid infinite loops)
-            Events\SyncedResourceChangedInForeignDatabase::class => [],
+            SyncedResourceChangedInForeignDatabase::class => [],
         ];
     }
 
-    public function register()
+    public function register(): void
     {
         //
     }
 
-    public function boot()
+    public function boot(): void
     {
         $this->bootEvents();
         $this->mapRoutes();
@@ -105,7 +147,7 @@ class TenancyServiceProvider extends ServiceProvider
         $this->makeTenancyMiddlewareHighestPriority();
     }
 
-    protected function bootEvents()
+    protected function bootEvents(): void
     {
         foreach ($this->events() as $event => $listeners) {
             foreach ($listeners as $listener) {
@@ -118,9 +160,9 @@ class TenancyServiceProvider extends ServiceProvider
         }
     }
 
-    protected function mapRoutes()
+    protected function mapRoutes(): void
     {
-        $this->app->booted(function () {
+        $this->app->booted(function (): void {
             if (file_exists(base_path('routes/tenant.php'))) {
                 Route::namespace(static::$controllerNamespace)
                     ->group(base_path('routes/tenant.php'));
@@ -128,21 +170,23 @@ class TenancyServiceProvider extends ServiceProvider
         });
     }
 
-    protected function makeTenancyMiddlewareHighestPriority()
+    protected function makeTenancyMiddlewareHighestPriority(): void
     {
         $tenancyMiddleware = [
             // Even higher priority than the initialization middleware
-            Middleware\PreventAccessFromCentralDomains::class,
+            PreventAccessFromCentralDomains::class,
 
-            Middleware\InitializeTenancyByDomain::class,
-            Middleware\InitializeTenancyBySubdomain::class,
-            Middleware\InitializeTenancyByDomainOrSubdomain::class,
-            Middleware\InitializeTenancyByPath::class,
-            Middleware\InitializeTenancyByRequestData::class,
+            InitializeTenancyByDomain::class,
+            InitializeTenancyBySubdomain::class,
+            InitializeTenancyByDomainOrSubdomain::class,
+            InitializeTenancyByPath::class,
+            InitializeTenancyByRequestData::class,
         ];
 
         foreach (array_reverse($tenancyMiddleware) as $middleware) {
-            $this->app[\Illuminate\Contracts\Http\Kernel::class]->prependToMiddlewarePriority($middleware);
+            /** @var \Illuminate\Foundation\Http\Kernel $kernel */
+            $kernel = $this->app->make(Kernel::class);
+            $kernel->prependToMiddlewarePriority($middleware);
         }
     }
 }

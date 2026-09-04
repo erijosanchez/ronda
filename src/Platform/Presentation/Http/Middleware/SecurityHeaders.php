@@ -24,7 +24,7 @@ final class SecurityHeaders
      *
      * @var array<string, string>
      */
-    private const HEADERS = [
+    private const array HEADERS = [
         'X-Content-Type-Options' => 'nosniff',
         'X-Frame-Options' => 'DENY',
         'Referrer-Policy' => 'strict-origin-when-cross-origin',
@@ -52,14 +52,14 @@ final class SecurityHeaders
         if ($request->secure()) {
             $response->headers->set(
                 'Strict-Transport-Security',
-                'max-age=63072000; includeSubDomains; preload'
+                'max-age=63072000; includeSubDomains; preload',
             );
         }
 
         if (config('security.csp_enabled', true)) {
             $response->headers->set(
                 'Content-Security-Policy',
-                $this->contentSecurityPolicy($request)
+                $this->contentSecurityPolicy($request),
             );
         }
 

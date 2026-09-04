@@ -3,10 +3,12 @@
 # Multi-etapa: la imagen final no lleva composer, ni node, ni herramientas de
 # compilacion, ni codigo de desarrollo.  Ver RONDA-PLAN-MAESTRO.md sec. 11.2
 
-# ── Etapa 1: dependencias PHP ────────────────────────────────────────────────
+# --- Etapa 1: dependencias PHP ----------------------------------------------
 FROM composer:2.8 AS vendor
 
 WORKDIR /app
+
+# Las dependencias primero: esta capa solo se invalida si cambia composer.lock.
 COPY composer.json composer.lock ./
 RUN composer install \
         --no-dev \
@@ -16,7 +18,19 @@ RUN composer install \
         --no-interaction \
         --no-progress
 
-# ── Etapa 2: assets ──────────────────────────────────────────────────────────
+# El classmap necesita el codigo. Se genera aqui, donde composer existe: la
+# imagen final no lleva composer (peso muerto y superficie de ataque).
+COPY app app
+COPY src src
+COPY bootstrap bootstrap
+COPY config config
+COPY database database
+COPY routes routes
+# --no-scripts: post-autoload-dump invoca `artisan package:discover`, y aqui
+# no hay artisan. El descubrimiento de paquetes se hace al arrancar.
+RUN composer dump-autoload --optimize --classmap-authoritative --no-dev --no-scripts
+
+# --- Etapa 2: assets --------------------------------------------------------
 FROM node:22-alpine AS assets
 
 WORKDIR /app
@@ -26,7 +40,7 @@ COPY vite.config.js ./
 COPY resources ./resources
 RUN npm run build
 
-# ── Etapa 3: runtime ─────────────────────────────────────────────────────────
+# --- Etapa 3: runtime -------------------------------------------------------
 FROM dunglas/frankenphp:1-php8.4-alpine AS runtime
 
 LABEL org.opencontainers.image.title="Ronda" \
@@ -65,8 +79,13 @@ COPY --chown=www-data:www-data . /app
 COPY --from=vendor --chown=www-data:www-data /app/vendor /app/vendor
 COPY --from=assets --chown=www-data:www-data /app/public/build /app/public/build
 
-RUN composer dump-autoload --optimize --classmap-authoritative --no-dev \
-    && mkdir -p storage/framework/{cache,sessions,views} storage/logs bootstrap/cache \
+# busybox ash no expande llaves: se escriben las rutas completas.
+RUN mkdir -p \
+        storage/framework/cache \
+        storage/framework/sessions \
+        storage/framework/views \
+        storage/logs \
+        bootstrap/cache \
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 

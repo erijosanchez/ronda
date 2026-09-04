@@ -8,22 +8,29 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
 /*
 |--------------------------------------------------------------------------
-| Tenant Routes
+| Rutas de tenant
 |--------------------------------------------------------------------------
+| Todo lo que se sirve en el subdominio de un cliente. El middleware
+| identifica el tenant por dominio y cambia la conexion de base de datos
+| antes de que corra nada.
 |
-| Here you can register the tenant routes for your application.
-| These routes are loaded by the TenantRouteServiceProvider.
+| PreventAccessFromCentralDomains devuelve 404 si alguien pide una ruta de
+| tenant desde el dominio central: por eso este archivo NO puede declarar una
+| ruta '/', o eclipsaria la portada del SaaS. El stub del paquete traia una y
+| era exactamente eso lo que rompia la ruta central.
 |
-| Feel free to customize them however you want. Good luck!
-|
+| Denegar por defecto: los modulos registran aqui dentro del grupo 'auth'.
 */
 
 Route::middleware([
     'web',
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
-])->group(function () {
-    Route::get('/', function () {
-        return 'This is your multi-tenant application. The id of the current tenant is ' . tenant('id');
+])->group(function (): void {
+
+    Route::middleware(['auth'])->group(function (): void {
+        // Los modulos registran aqui sus rutas de tenant conforme se construyan.
+        // Ejemplo (fase 1): Ronda\Submissions\Presentation\routes.php
     });
+
 });

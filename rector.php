@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
+use Rector\Php55\Rector\String_\StringClassNameToClassConstantRector;
 use Rector\Set\ValueObject\LevelSetList;
 use Rector\Set\ValueObject\SetList;
 use RectorLaravel\Set\LaravelLevelSetList;
@@ -21,6 +22,13 @@ return RectorConfig::configure()
         __DIR__.'/bootstrap/cache',
         __DIR__.'/storage',
         __DIR__.'/vendor',
+
+        // Los tests de arquitectura comparan PREFIJOS de namespace como texto
+        // ('Ronda\Platform\Presentation' no es una clase). Convertirlos a
+        // ::class es ruido y en algunos casos ni siquiera compila.
+        StringClassNameToClassConstantRector::class => [
+            __DIR__.'/tests/Arch',
+        ],
     ])
     ->withSets([
         LevelSetList::UP_TO_PHP_84,

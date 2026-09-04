@@ -9,6 +9,13 @@ if [ -n "${DB_HOST:-}" ]; then
     done
 fi
 
+# El manifiesto de paquetes no se pudo generar en el build (no habia artisan
+# en la etapa de composer), asi que se genera aqui la primera vez. Despues ya
+# existe y no se repite en cada arranque.
+if [ ! -f bootstrap/cache/packages.php ]; then
+    php artisan package:discover --ansi
+fi
+
 # En produccion las caches se construyen aqui, no en el build: dependen del .env.
 if [ "${APP_ENV:-production}" = "production" ]; then
     php artisan config:cache

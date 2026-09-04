@@ -37,7 +37,7 @@ return [
 
     'two_factor' => [
         'enforced_roles' => array_filter(
-            explode(',', (string) env('TWO_FACTOR_ENFORCED_ROLES', 'owner,admin,finance'))
+            explode(',', (string) env('TWO_FACTOR_ENFORCED_ROLES', 'owner,admin,finance')),
         ),
     ],
 

@@ -36,20 +36,27 @@ $publicRoutes = [
 ];
 
 /**
- * Prefijos de paquetes de terceros que gestionan su propia autorizacion.
+ * Rutas de paquetes de terceros: assets estaticos y endpoints que gestionan su
+ * propia autorizacion. Livewire usa un prefijo con hash, de ahi los patrones.
+ *
+ * Ninguna de estas sirve datos del tenant: son JavaScript, CSS, banderas de
+ * pais y el endpoint de actualizacion de componentes, que autoriza cada
+ * componente por separado.
  *
  * @var list<string>
  */
-$vendorPrefixes = [
-    'livewire/',
-    'telescope',
-    '_debugbar/',
-    '_ignition/',
-    'horizon',
-    'sanctum/',
+$vendorPatterns = [
+    '#^livewire[-/]#',        // livewire-<hash>/update, /livewire.js, uploads
+    '#^flux/#',               // assets de Flux UI
+    '#^passkeys/login#',      // reto WebAuthn: publico por definicion
+    '#^tenancy/assets/#',     // assets servidos por stancl/tenancy
+    '#^telescope#',           // autoriza con su propio gate
+    '#^horizon#',             // autoriza con su propio gate
+    '#^_debugbar/#',
+    '#^_ignition/#',
 ];
 
-it('no expone ninguna ruta sin autenticacion', function () use ($publicRoutes, $vendorPrefixes) {
+it('no expone ninguna ruta sin autenticacion', function () use ($publicRoutes, $vendorPatterns): void {
     $unprotected = [];
 
     /** @var RoutingRoute $route */
@@ -60,8 +67,8 @@ it('no expone ninguna ruta sin autenticacion', function () use ($publicRoutes, $
             continue;
         }
 
-        foreach ($vendorPrefixes as $prefix) {
-            if (str_starts_with($uri, $prefix)) {
+        foreach ($vendorPatterns as $pattern) {
+            if (preg_match($pattern, $uri) === 1) {
                 continue 2;
             }
         }
@@ -74,7 +81,7 @@ it('no expone ninguna ruta sin autenticacion', function () use ($publicRoutes, $
                 || str_starts_with($m, 'auth:')
                 || str_starts_with($m, 'auth.')
                 || str_contains($m, 'Authenticate')
-            )
+            ),
         );
 
         if (! $authenticated) {
@@ -84,11 +91,11 @@ it('no expone ninguna ruta sin autenticacion', function () use ($publicRoutes, $
 
     expect($unprotected)->toBeEmpty(
         "Rutas sin middleware de autenticacion:\n  ".implode("\n  ", $unprotected).
-        "\n\nSi la ruta debe ser publica, agregala a \$publicRoutes en este test y explica por que en el PR."
+        "\n\nSi la ruta debe ser publica, agregala a \$publicRoutes en este test y explica por que en el PR.",
     );
 })->group('security');
 
-it('resuelve todos los controladores referenciados por las rutas', function () {
+it('resuelve todos los controladores referenciados por las rutas', function (): void {
     // En reports-trimax, /api/ordenes/* apuntaba a cuatro metodos que no
     // existian en ComercialController. Fallaba con 500 al primer uso.
     $broken = [];
@@ -109,6 +116,6 @@ it('resuelve todos los controladores referenciados por las rutas', function () {
     }
 
     expect($broken)->toBeEmpty(
-        "Rutas apuntando a controladores o metodos inexistentes:\n  ".implode("\n  ", $broken)
+        "Rutas apuntando a controladores o metodos inexistentes:\n  ".implode("\n  ", $broken),
     );
 })->group('security');
