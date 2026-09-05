@@ -1,4 +1,4 @@
-# Dónde nos quedamos — 3 de septiembre de 2026
+# Dónde nos quedamos — 5 de septiembre de 2026
 
 Estado de la **fase 0** (fundaciones) del plan maestro (`../../RONDA-PLAN-MAESTRO.md`).
 Léelo antes de retomar; termina con la lista concreta de lo que sigue.
@@ -7,183 +7,181 @@ Léelo antes de retomar; termina con la lista concreta de lo que sigue.
 
 ## Resumen en una línea
 
-La fase 0 está prácticamente completa y verificada dentro de Docker: las cinco
-puertas de calidad pasan y el stack levanta. **Queda un bloqueante abierto:
-`/login` devuelve 500 por Telescope.** Está diagnosticado y con solución
-propuesta más abajo.
+**La fase 0 está cerrada.** No queda ningún bloqueante: el stack levanta con los
+ocho contenedores en verde, un tenant se provisiona de punta a punta con su
+propia base, y se entra con usuario y contraseña en su subdominio. Las cinco
+puertas de calidad pasan.
 
 ---
 
-## Lo que funciona, verificado de verdad
-
-Todo lo siguiente se comprobó ejecutándolo, no asumiéndolo.
+## Lo que funciona, verificado ejecutándolo
 
 | Puerta | Resultado | Comando |
 |---|---|---|
-| Pint (formato) | **PASS**, 42 archivos | `vendor/bin/pint --test` |
+| Pint (formato) | **PASS**, 66 archivos | `vendor/bin/pint --test` |
 | Larastan nivel 8 | **[OK] No errors**, sin baseline | `vendor/bin/phpstan analyse` |
-| Deptrac (módulos) | **0 violaciones** | `vendor/bin/deptrac analyse` |
 | Rector | **[OK] Rector is done!** | `vendor/bin/rector process --dry-run` |
-| Pest | **15 pasan, 3 todos, 0 fallos** | `vendor/bin/pest` |
+| Deptrac (módulos) | **0 violaciones** | `vendor/bin/deptrac analyse` |
+| Pest | **38 pasan, 2 todos, 0 fallos** | `vendor/bin/pest` |
 
-**Stack local levantado y sano:** app (FrankenPHP + Octane), postgres 17,
-redis 7.4, horizon, scheduler, reverb, mailpit, minio. Todos `healthy`.
+Todo junto: `docker compose exec app composer check` (sale 0).
 
-**Migraciones aplicadas** sobre PostgreSQL (users, cache, jobs, tenants,
-domains). Base de pruebas `ronda_testing` creada con sus extensiones.
+**Stack:** app, postgres 17, redis 7.4, horizon, scheduler, reverb, mailpit,
+minio. Los ocho `healthy`.
 
-**Endpoints comprobados:** `/` → 200, `/up` → 200, con las siete cabeceras de
-seguridad y una CSP estricta con nonce por petición.
+**Provisión de un tenant, comprobada de verdad:** `CreateTenant` crea la fila y
+el dominio, `ProvisionTenantJob` crea `ronda_tnt_<ulid>`, migra el esquema,
+siembra 4 roles y 16 permisos, crea al propietario con rol `owner` y emite
+`TenantProvisioned`.
 
-**Imagen de producción:** `ronda-app:local`, 462 MB, sin composer, sin node,
-sin Chromium, corriendo como `www-data`.
-
----
-
-## 🔴 Bloqueante abierto: `/login` da 500
-
-**Síntoma.** `GET /login` devuelve 500 y tarda ~258 segundos. Bloquea un worker
-de Octane mientras tanto.
-
-**Causa raíz identificada.** Laravel Telescope se registra y escribe en la
-tabla `telescope_entries`, que no existe porque nunca se publicaron sus
-migraciones:
-
-```
-local.ERROR: SQLSTATE[42P01]: Undefined table: 7
-ERROR: relation "telescope_entries" does not exist
-```
-
-**Por qué tarda 258 s en vez de fallar rápido.** El renderizador de excepciones
-de Laravel escanea `vendor/` para pintar la página de error, y sobre el bind
-mount de Docker Desktop en Windows eso es extremadamente lento. Acaba en
-`Maximum execution time of 30 seconds exceeded`. Es un multiplicador del
-problema, no la causa.
-
-**Lo que ya se intentó (y no bastó).** Se añadió `laravel/telescope` a
-`extra.laravel.dont-discover` en `composer.json` y se registra condicionalmente
-solo en local desde `AppServiceProvider`. Se verificó que
-`bootstrap/cache/packages.php` ya **no** menciona Telescope. Aun así el error
-persiste tras reiniciar el contenedor, así que **falta identificar qué lo sigue
-registrando** — sospechas por orden:
-
-1. Los contenedores `horizon`, `scheduler` y `reverb` comparten el mismo bind
-   mount y pudieron regenerar `bootstrap/cache/packages.php` con otro estado.
-2. Algún caché de configuración o de eventos quedó escrito en `bootstrap/cache`.
-3. El `composer dump-autoload` que se lanzó en el host se interrumpió por
-   timeout y dejó el autoloader a medias.
-
-**Camino de solución recomendado (30–45 min):**
-
-```bash
-docker compose down
-rm -f bootstrap/cache/*.php
-docker compose run --rm --no-deps app composer dump-autoload
-docker compose up -d
-docker compose exec app php artisan optimize:clear
-docker compose logs app --tail=30
-timeout 60 curl -si http://localhost:8000/login | head -20
-```
-
-Si sigue apareciendo, la decisión limpia es **quitar Telescope del proyecto**
-(`composer remove --dev laravel/telescope`) y volver a evaluarlo en la fase 1
-con sus migraciones publicadas y bien acotado a local. Es una herramienta de
-depuración: no vale la pena que bloquee la fase 0. Laravel Pulse, que sí está
-en el plan (§11.5), cubre buena parte de lo mismo en local y en producción.
-
-**Truco para depurar más rápido:** poner `APP_DEBUG=false` en `.env` mientras se
-investiga. Convierte el cuelgue de 258 s en un 500 inmediato y el error real
-queda legible en `storage/logs/laravel.log`.
+**Login:** `POST /login` en `demo.localhost:8000` devuelve 302 con la sesión
+abierta. En el dominio central `/login` devuelve **404**, que es lo correcto.
 
 ---
 
-## Efecto colateral pendiente
+## Lo que se arregló esta sesión
 
-El healthcheck del contenedor `app` marca **unhealthy** aunque la aplicación
-responde 200 desde fuera y el mismo `curl` ejecutado a mano dentro del
-contenedor devuelve 200 con exit 0. La causa más probable es que los workers de
-Octane estaban saturados renderizando la excepción de `/login` durante 258 s, y
-el healthcheck (timeout 5 s) no conseguía turno.
+### El 500 de `/login` no era Telescope
 
-**Verificar de nuevo cuando `/login` esté arreglado.** Si persiste, subir
-`--timeout` a 10 s y `--start-period` a 60 s en el `HEALTHCHECK` del
-`Dockerfile`. Los healthchecks de `horizon`, `scheduler` y `reverb` sí pasan.
+El handoff anterior lo atribuía a Laravel Telescope. No lo era. La vista abre
+con el componente `layouts.guest`, que Blade resuelve en
+`resources/views/components/layouts/`, y el layout estaba en
+`resources/views/layouts/`. El componente no existía.
+
+Los errores de `telescope_entries` que llevaron al diagnóstico equivocado los
+emitían los contenedores `horizon`, `reverb` y `scheduler`: procesos de larga
+vida que seguían con el paquete cargado en memoria y escribían en el log cada
+cinco segundos. Aparecían en el log de la misma petición y despistaron.
+
+Los 258 segundos eran el renderizador de excepciones recorriendo `vendor/` sobre
+el bind mount de Windows. Un multiplicador, no la causa.
+
+Telescope se quitó igualmente (`composer remove`): sus migraciones nunca se
+publicaron. Pulse cubre el hueco (plan §11.5).
+
+### El healthcheck del `app` nunca pudo pasar
+
+Era `php artisan octane:status`, que arranca el framework entero y **tarda 17,3 s
+sobre el bind mount**, contra un timeout de 5 s. No era saturación de workers.
+Ahora comprueba `/up` por HTTP, que además mide lo que importa: servir
+peticiones, no arrancar un proceso.
+
+### La suite de tests corría contra la base de desarrollo
+
+El hallazgo más serio. `docker-compose` inyecta `.env` con `env_file`, así que
+`APP_ENV`, `DB_DATABASE` y `QUEUE_CONNECTION` ya existían como variables del
+proceso. PHPUnit no pisa variables ya definidas sin `force="true"` — y `force`
+solo toca `getenv()` y la superglobal `$_ENV`, mientras que en CLI las variables
+de Docker también están en `$_SERVER`, que es lo **primero** que consulta el
+lector de Dotenv de Laravel.
+
+Resultado: toda la suite usaba `ronda_central` y la cola de redis. No es
+teórico: una prueba con `DatabaseMigrations` ejecutó `migrate:fresh` sobre la
+base de desarrollo y la dejó vacía, con nueve bases de tenant huérfanas.
+
+Arreglado con entradas `env` **y** `server` con `force="true"` en `phpunit.xml`,
+y `tests/Feature/Security/TestEnvironmentTest.php` para que la CI lo detecte si
+alguien lo revierte.
+
+### Rector iba a romper el login otra vez
+
+`StringToClassConstantRector` convertía la vista `auth.login` en la constante
+`Illuminate\Auth\Events\Login::class`: su tabla mapea el nombre del evento
+legacy de Laravel 5 y colisiona con el nombre de nuestra vista Blade.
+Desactivada con justificación en `rector.php`.
+
+### Otros
+
+- **Composer no estaba en el contenedor**, así que el `composer check` que manda
+  `CLAUDE.md` nunca pudo ejecutarse. Nueva etapa `dev` del Dockerfile
+  (`runtime` + Composer); producción sigue construyendo `runtime`.
+- `composer check` corría cuatro puertas y la CI cinco. Ahora incluye Rector.
+- `phpunit.xml` no miraba `src/*/Tests`, la carpeta que manda `CLAUDE.md`, y la
+  cobertura solo medía `app/`. Ambas corregidas.
 
 ---
 
-## Decisiones tomadas durante la ejecución
+## Decisiones tomadas esta sesión
 
-Van documentadas aquí porque afectan a cómo se trabaja en el repo:
+1. **Se invirtió el orden del handoff anterior.** El seeder de roles y el test
+   de login dependían de la provisión de tenant, no al revés: usuarios, roles y
+   permisos viven en la base del tenant (plan §8.3), y esa base no existía.
 
-1. **PHP local 8.2 vs proyecto 8.4.** El XAMPP de esta máquina tiene PHP 8.2 y
-   no trae `pcntl`/`posix`. Se declaró la plataforma destino en
-   `composer.json > config.platform`, así que Composer resuelve contra PHP 8.4
-   y `php artisan` desde el host **falla a propósito**. Todo pasa por el
-   contenedor. Está en `CLAUDE.md`.
+2. **La central se queda sin tabla `users`.** Es el invariante del ADR 0002 y
+   hay un test que lo verifica. `platform_users` (personal de Ronda) se pospone
+   a su propia fase; hoy **nadie inicia sesión en el dominio central**.
 
-2. **Chromium fuera de la imagen base.** Arrastraba 149 paquetes (GTK, LLVM).
-   Es el riesgo 9 del plan: el PDF irá en un servicio aparte, en cola.
+3. **La provisión no cuelga de `TenantCreated`.** Eloquent emite ese evento
+   dentro de la transacción que abre `CreateTenant`, y PostgreSQL prohíbe
+   `CREATE DATABASE` dentro de un bloque de transacción. El `JobPipeline` de
+   stancl queda vacío y `CreateTenant` despacha el job **después del commit**.
 
-3. **Composer fuera de la imagen final.** El classmap optimizado se genera en
-   la etapa `vendor`. Es el hallazgo I9 de la auditoría de reports-trimax.
+4. **Las rutas de Fortify se cargan en `routes/tenant.php`.** Fortify las
+   registra en el grupo `web` del dominio central, sin tenancy. Se desactiva su
+   registro con `Fortify::ignoreRoutes()`.
 
-4. **`routes/tenant.php` sin ruta `/`.** El stub de `stancl/tenancy` traía una
-   que eclipsaba la portada central y hacía que `PreventAccessFromCentralDomains`
-   devolviera 404. Documentado en el propio archivo.
+5. **El rol `encargado` se identifica como `site_manager`.** La convención es
+   código en inglés e interfaz en español; el nombre visible sale de `__()`.
 
-5. **Fortify con features recortadas.** `registration`, `emailVerification` y
-   `passkeys` quedan comentadas: son parte del onboarding self-service de la
-   fase 2 y activarlas ahora deja rutas sin vista.
+6. **`CreateTenantData` no extiende `Spatie\LaravelData\Data`.** Ver el punto
+   abierto de abajo.
 
-6. **Defecto corregido en `SecurityHeaders`.** El nonce se generaba *después*
-   de `$next($request)`, o sea después de renderizar la vista: la CSP habría
-   bloqueado los scripts de la propia aplicación. Ahora se genera antes y se
-   propaga con `Vite::useCspNonce()`.
+7. **Suite `Integration` sin `RefreshDatabase`.** `CREATE DATABASE` no cabe
+   dentro de la transacción con la que envuelve cada prueba.
 
 ---
 
-## Historial de commits
+## Puntos abiertos (ninguno bloquea)
 
-```
-8f783de  fix: cierra las cinco puertas de calidad en verde
-6c350c7  feat(platform): publica configuracion de tenancy, fortify y permisos
-b4fc2f5  feat(platform): cabeceras de seguridad con CSP estricta, tenancy e i18n
-631d7ac  chore: fundaciones del proyecto (fase 0)
-```
+### La regla «los DTOs son inmutables» choca con spatie/laravel-data
 
-Hay trabajo **sin commitear** en el árbol: vistas de autenticación,
-`FortifyServiceProvider`, el arreglo del nonce y el intento de exclusión de
-Telescope. Commitear cuando `/login` esté verde.
+PHP no permite que una clase `readonly` extienda una que no lo es, y
+`Spatie\LaravelData\Data` no es readonly. El test de arquitectura exige el
+modificador a nivel de clase (Pest comprueba `ReflectionClass::isReadOnly()`),
+así que **ningún DTO de spatie puede pasar la regla**.
+
+`CreateTenantData` se resolvió como clase `readonly` propia porque no necesitaba
+nada del paquete. **Hay que decidir cuál de las dos cosas manda antes de que un
+DTO tenga que atarse a un `Request`**, que es donde spatie aporta de verdad. Las
+opciones: DTOs planos y quitar el paquete de esa función, o relajar la regla a
+«todas las propiedades readonly» con una expectativa propia de Pest.
+
+### La lista blanca de `toBeReadonly()` crece con cada namespace
+
+`tests/Arch/ArchitectureTest.php` exige readonly a **todo** e ignora una lista
+que hay que ampliar cada vez que aparece una carpeta nueva. Es «denegar por
+defecto», igual que `RouteProtectionTest`, pero conviene revisarlo cuando entren
+más módulos.
+
+### Cookie de sesión y colisión de identificadores
+
+`SESSION_DOMAIN` está vacío, así que la cookie es host-only y no viaja entre
+subdominios. Hay un test que lo fija. Aun así, como los identificadores de
+usuario empiezan en 1 en cada base, una cookie trasplantada a mano al dominio de
+otro cliente resolvería el usuario 1 de esa base. En un navegador no puede
+pasar; si se quiere defensa en profundidad, atar la sesión al `tenant_id`.
 
 ---
 
 ## Lo que sigue, en orden
 
-### Para mañana (cierra la fase 0)
-
-1. **Arreglar `/login`** siguiendo el camino de arriba. Es lo primero.
-2. **Confirmar el healthcheck de `app`** una vez `/login` responda.
-3. **Commitear** las vistas de auth, el `FortifyServiceProvider` y el arreglo
-   del nonce.
-4. **Seeder de arranque:** roles (`owner`, `admin`, `supervisor`, `encargado`),
-   permisos base y un usuario de desarrollo, para poder entrar y probar el
-   login de verdad.
-5. **Test funcional de login:** credenciales correctas, incorrectas, rate limit
-   a los 5 intentos, y reto de 2FA. Ahora mismo la autenticación no tiene
-   ninguna prueba.
-6. **Provisión de tenant de punta a punta:** `CreateTenant` + `ProvisionTenant`
-   creando la base, migrando y sembrando. Es el corazón del ADR 0002 y todavía
-   no existe.
-7. **Llenar los tres `todo()`** de `tests/Feature/Tenancy/TenantIsolationTest.php`
-   en cuanto haya dos tenants que enfrentar.
-
-### Pendientes de la fase 0 que quedaron fuera
-
-- Sentry y Laravel Pulse (plan §11.5). Solo están los logs.
-- Layout autenticado con Flux (hoy solo existe `layouts/guest`).
-- `lang/en` está vacío: solo hay `lang/es`.
-- Instalar los plugins de Claude Code del §16.6 del plan (ninguno instalado
-  todavía en esta máquina; Superpowers es el primero).
+1. **Ruta y layout autenticados.** El login redirige a `/home`
+   (`config/fortify.home`) y **esa ruta no existe**. Es lo primero: hoy se entra
+   y se aterriza en un 404. Hace falta el layout autenticado con Flux; solo
+   existe el componente `layouts.guest`.
+2. **Policies y `Gate::before` para el rol `owner`** (plan §10.3). Los permisos
+   ya están sembrados pero todavía no los usa nadie.
+3. **Módulo `Directory`:** zonas, sedes y asignación usuario ↔ sede (plan §8.3).
+   Es el primero que registrará rutas autenticadas de tenant.
+4. **Rellenar el `todo()` de aislamiento por rutas** en cuanto exista la primera
+   ruta autenticada: recorrerlas todas con un usuario del otro tenant.
+5. **Provisión asíncrona con pantalla de progreso** (plan §7.2). Hoy el job va a
+   la cola pero nadie mira su estado; el objetivo del plan es menos de 30 s con
+   progreso visible.
+6. **Sentry y Laravel Pulse** (plan §11.5). Solo hay logs.
+7. **`lang/en` está vacío**; solo existe `lang/es`. Faltan además las claves
+   `roles.*` y `permissions.*` que usan `RoleName::label()` y
+   `PermissionName::label()`.
 
 ---
 
@@ -192,14 +190,22 @@ Telescope. Commitear cuando `/login` esté verde.
 ```bash
 cd c:/proyecto/ronda
 docker compose up -d
-docker compose ps                              # todo debe salir healthy
-docker compose exec app php artisan migrate
-docker compose exec app composer check         # pint + phpstan + deptrac + pest
+docker compose ps                              # los ocho deben salir healthy
+docker compose exec app php artisan migrate    # base central
+docker compose exec app php artisan db:seed    # crea el tenant de demostración
+docker compose exec app composer check         # las cinco puertas
 ```
 
-- App: http://localhost:8000
-- Mailpit: http://localhost:8025
-- MinIO: http://localhost:9001
+- Portada (central): http://localhost:8000 — aquí **no** hay login, da 404.
+- Aplicación (tenant): http://demo.localhost:8000/login
+  - Usuario: `owner@demo.test` · Contraseña: `password-de-desarrollo`
+- Mailpit: http://localhost:8025 · MinIO: http://localhost:9001
 - PostgreSQL desde el host: `localhost:5433` · Redis: `localhost:6380`
+
+Para ver las bases de tenant existentes:
+
+```bash
+docker compose exec postgres psql -U ronda -d postgres -c "select datname from pg_database where datname like 'ronda_tnt%'"
+```
 
 Las reglas de código están en `../CLAUDE.md`. Las decisiones, en `adr/`.
