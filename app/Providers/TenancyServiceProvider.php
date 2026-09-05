@@ -40,9 +40,7 @@ use Stancl\Tenancy\Events\TenantSaved;
 use Stancl\Tenancy\Events\TenantUpdated;
 use Stancl\Tenancy\Events\UpdatingDomain;
 use Stancl\Tenancy\Events\UpdatingTenant;
-use Stancl\Tenancy\Jobs\CreateDatabase;
 use Stancl\Tenancy\Jobs\DeleteDatabase;
-use Stancl\Tenancy\Jobs\MigrateDatabase;
 use Stancl\Tenancy\Listeners\BootstrapTenancy;
 use Stancl\Tenancy\Listeners\RevertToCentralContext;
 use Stancl\Tenancy\Listeners\UpdateSyncedResource;
@@ -69,17 +67,19 @@ class TenancyServiceProvider extends ServiceProvider
         return [
             // Tenant events
             CreatingTenant::class => [],
-            TenantCreated::class => [
-                JobPipeline::make([
-                    CreateDatabase::class,
-                    MigrateDatabase::class,
-                    // Jobs\SeedDatabase::class,
+            // La provision NO cuelga de este evento a proposito.
+            //
+            // TenantCreated lo emite Eloquent en `created`, o sea DENTRO de la
+            // transaccion que abre CreateTenant. PostgreSQL prohibe
+            // `CREATE DATABASE` dentro de un bloque de transaccion, asi que el
+            // pipeline por defecto del paquete fallaba en cuanto la Action
+            // hacia lo que manda la regla 3 (escritura multi-tabla en
+            // transaccion).
+            //
+            // En su lugar, CreateTenant despacha ProvisionTenantJob DESPUES
+            // del commit. Ver Ronda\Platform\Application\Jobs.
+            TenantCreated::class => [],
 
-                    // Your own jobs to prepare the tenant.
-                    // Provision API keys, create S3 buckets, anything you want!
-
-                ])->send(fn (TenantCreated $event) => $event->tenant)->shouldBeQueued(false), // `false` by default, but you probably want to make this `true` for production.
-            ],
             SavingTenant::class => [],
             TenantSaved::class => [],
             UpdatingTenant::class => [],

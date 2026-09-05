@@ -28,6 +28,24 @@ Route::middleware([
     PreventAccessFromCentralDomains::class,
 ])->group(function (): void {
 
+    /*
+     | Autenticacion.
+     |
+     | Las rutas de Fortify se cargan AQUI y no donde el paquete las pone por
+     | defecto. Fortify las registra en el grupo `web` del dominio central, sin
+     | tenancy, y ahi el login consultaria la tabla `users` de la base central,
+     | que no existe: los usuarios viven en la base del tenant (sec. 8.3).
+     |
+     | El registro por defecto se desactiva con Fortify::ignoreRoutes() en
+     | Ronda\Identity\Presentation\Providers\FortifyServiceProvider.
+     |
+     | Van dentro del grupo de tenancy pero FUERA del grupo 'auth': iniciar
+     | sesion es, por definicion, lo que hace quien todavia no la tiene.
+     | RouteProtectionTest las tiene en su lista blanca.
+     */
+    Route::namespace('Laravel\Fortify\Http\Controllers')
+        ->group(base_path('vendor/laravel/fortify/routes/routes.php'));
+
     Route::middleware(['auth'])->group(function (): void {
         // Los modulos registran aqui sus rutas de tenant conforme se construyan.
         // Ejemplo (fase 1): Ronda\Submissions\Presentation\routes.php

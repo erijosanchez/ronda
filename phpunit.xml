@@ -14,31 +14,81 @@
         <testsuite name="Arch">
             <directory>tests/Arch</directory>
         </testsuite>
+        <!-- Pruebas que necesitan bases de datos de verdad: la provision de un
+             tenant hace CREATE DATABASE, y PostgreSQL no lo permite dentro de
+             la transaccion en la que RefreshDatabase envuelve cada prueba. -->
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
+        <!-- Los modulos guardan sus pruebas en src/<Modulo>/Tests (CLAUDE.md).
+             Sin esta entrada nunca se ejecutaban. -->
+        <testsuite name="Modules">
+            <directory>src/*/Tests</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
+            <!-- El codigo de negocio vive en src/. Medir cobertura solo sobre
+                 app/ daba un porcentaje que no hablaba de nada. -->
             <directory>app</directory>
+            <directory>src</directory>
         </include>
+        <exclude>
+            <directory>src/*/Database/Migrations</directory>
+            <directory>src/*/Tests</directory>
+        </exclude>
     </source>
     <php>
-        <env name="APP_ENV" value="testing"/>
-        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
-        <env name="BCRYPT_ROUNDS" value="4"/>
-        <env name="BROADCAST_CONNECTION" value="null"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="pgsql"/>
-        <env name="DB_DATABASE" value="ronda_testing"/>
-        <env name="DB_URL" value=""/>
-        <env name="MAIL_MAILER" value="array"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="PULSE_ENABLED" value="false"/>
-        <env name="NIGHTWATCH_ENABLED" value="false"/>
-        <env name="DB_HOST" value="postgres"/>
-        <env name="DB_PORT" value="5432"/>
-        <env name="CACHE_STORE" value="array"/>
-        <env name="SESSION_DRIVER" value="array"/>
-        <env name="QUEUE_CONNECTION" value="sync"/>
-        <env name="FILESYSTEM_DISK" value="local"/>
+        <!-- force="true" NO es opcional aqui.
+
+             docker-compose inyecta .env en el contenedor con `env_file`, asi
+             que APP_ENV, DB_DATABASE y QUEUE_CONNECTION ya existen como
+             variables de entorno del proceso. Sin `force`, PHPUnit respeta
+             las que ya estan definidas y estas se ignoran en silencio: la
+             suite corria contra `ronda_central` (la base de desarrollo) con
+             la cola de redis, y un test con DatabaseMigrations la borraba.
+
+             Si alguien quita estos `force`, las pruebas vuelven a apuntar a
+             la base de desarrollo sin avisar. Hay un test que lo verifica:
+             tests/Feature/Security/TestEnvironmentTest.php -->
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <env name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <env name="BROADCAST_CONNECTION" value="null" force="true"/>
+        <env name="CACHE_STORE" value="array" force="true"/>
+        <env name="DB_CONNECTION" value="pgsql" force="true"/>
+        <env name="DB_DATABASE" value="ronda_testing" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
+        <env name="MAIL_MAILER" value="array" force="true"/>
+        <env name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <env name="SESSION_DRIVER" value="array" force="true"/>
+        <env name="PULSE_ENABLED" value="false" force="true"/>
+        <env name="NIGHTWATCH_ENABLED" value="false" force="true"/>
+        <env name="DB_HOST" value="postgres" force="true"/>
+        <env name="DB_PORT" value="5432" force="true"/>
+        <env name="FILESYSTEM_DISK" value="local" force="true"/>
+
+
+        <!-- Las mismas claves como <server>. PHP en CLI copia el entorno
+             del proceso a $_SERVER, y el lector de Dotenv que usa env() en
+             Laravel consulta $_SERVER ANTES que $_ENV. force="true" en <env>
+             solo toca getenv() y $_ENV, asi que sin estas entradas $_SERVER
+             conservaba APP_ENV=local y DB_DATABASE=ronda_central y ganaba. -->
+        <server name="APP_ENV" value="testing" force="true"/>
+        <server name="APP_MAINTENANCE_DRIVER" value="file" force="true"/>
+        <server name="BCRYPT_ROUNDS" value="4" force="true"/>
+        <server name="BROADCAST_CONNECTION" value="null" force="true"/>
+        <server name="CACHE_STORE" value="array" force="true"/>
+        <server name="DB_CONNECTION" value="pgsql" force="true"/>
+        <server name="DB_DATABASE" value="ronda_testing" force="true"/>
+        <server name="DB_URL" value="" force="true"/>
+        <server name="MAIL_MAILER" value="array" force="true"/>
+        <server name="QUEUE_CONNECTION" value="sync" force="true"/>
+        <server name="SESSION_DRIVER" value="array" force="true"/>
+        <server name="PULSE_ENABLED" value="false" force="true"/>
+        <server name="NIGHTWATCH_ENABLED" value="false" force="true"/>
+        <server name="DB_HOST" value="postgres" force="true"/>
+        <server name="DB_PORT" value="5432" force="true"/>
+        <server name="FILESYSTEM_DISK" value="local" force="true"/>
     </php>
 </phpunit>

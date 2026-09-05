@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use App\Models\User;
+use Ronda\Identity\Domain\Models\User;
 
 return [
 

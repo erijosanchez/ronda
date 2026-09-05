@@ -95,6 +95,9 @@ arch('los DTOs son inmutables')
         'Ronda\Platform\Application\Queries',
         'Ronda\Platform\Infrastructure',
         'Ronda\Identity\Infrastructure',
+        // Factories y seeders heredan de clases de Laravel con propiedades
+        // mutables: no pueden declararse readonly.
+        'Ronda\Identity\Database',
         'Ronda\Platform\Presentation',
         'Ronda\Identity\Presentation',
     ])

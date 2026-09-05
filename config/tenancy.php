@@ -2,20 +2,21 @@
 
 declare(strict_types=1);
 
+use Database\Seeders\TenantDatabaseSeeder;
+use Ronda\Platform\Domain\Models\Tenant;
+use Ronda\Platform\Infrastructure\Tenancy\UlidGenerator;
 use Stancl\Tenancy\Bootstrappers\CacheTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\DatabaseTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\FilesystemTenancyBootstrapper;
 use Stancl\Tenancy\Bootstrappers\QueueTenancyBootstrapper;
 use Stancl\Tenancy\Database\Models\Domain;
-use Stancl\Tenancy\Database\Models\Tenant;
 use Stancl\Tenancy\TenantDatabaseManagers\MySQLDatabaseManager;
 use Stancl\Tenancy\TenantDatabaseManagers\PostgreSQLDatabaseManager;
 use Stancl\Tenancy\TenantDatabaseManagers\SQLiteDatabaseManager;
-use Stancl\Tenancy\UUIDGenerator;
 
 return [
     'tenant_model' => Tenant::class,
-    'id_generator' => UUIDGenerator::class,
+    'id_generator' => UlidGenerator::class,
 
     'domain_model' => Domain::class,
 
@@ -201,7 +202,8 @@ return [
      * Parameters used by the tenants:seed command.
      */
     'seeder_parameters' => [
-        '--class' => 'DatabaseSeeder', // root seeder class
+        // Semilla del TENANT, no la central: catalogos y roles base.
+        '--class' => TenantDatabaseSeeder::class,
         // '--force' => true, // This needs to be true to seed tenant databases in production
     ],
 ];

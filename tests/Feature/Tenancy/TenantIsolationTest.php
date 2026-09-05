@@ -24,11 +24,19 @@ it('no comparte la cache entre tenants', function (): void {
         ->not->toBeEmpty('Sin etiqueta por tenant, la cache filtra datos entre clientes.');
 })->group('tenancy');
 
-todo('recorre todas las rutas autenticadas con un usuario de otro tenant y exige 403/404')
-    ->group('tenancy');
+// El resto del aislamiento se comprueba con dos tenants de verdad, cada uno
+// con su base, en tests/Integration/TenantIsolationTest.php. Vive alli porque
+// `CREATE DATABASE` no puede correr dentro de la transaccion de RefreshDatabase.
+//
+// Ya cubierto alli: usuarios separados por base, credenciales de un tenant
+// rechazadas en el dominio de otro, cambio de contexto por dominio, un job del
+// tenant A que no ve datos del B, y cache sin fugas.
 
-todo('un job encolado en el tenant A no puede leer datos del tenant B')
+todo('recorre todas las rutas autenticadas con un usuario de otro tenant y exige 403/404')
+    // Bloqueado: el grupo autenticado de routes/tenant.php todavia esta vacio.
+    // Se llena en la fase 1, con el primer modulo que registre rutas.
     ->group('tenancy');
 
 todo('una URL firmada de evidencia del tenant A se rechaza en el contexto del tenant B')
+    // Bloqueado: el modulo Evidence no existe todavia.
     ->group('tenancy');

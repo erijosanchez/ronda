@@ -21,6 +21,18 @@ use Laravel\Fortify\Fortify;
  */
 final class FortifyServiceProvider extends ServiceProvider
 {
+    public function register(): void
+    {
+        // Fortify registra sus rutas en el grupo `web` del dominio central, sin
+        // middleware de tenancy. Ahi el login autenticaria contra la base
+        // central, que ya no tiene tabla `users`: los usuarios viven en la base
+        // del tenant (sec. 8.3).
+        //
+        // Se le quita el registro y se cargan en routes/tenant.php, dentro del
+        // grupo que identifica el tenant por dominio.
+        Fortify::ignoreRoutes();
+    }
+
     public function boot(): void
     {
         $this->registerViews();
