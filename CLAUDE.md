@@ -86,7 +86,7 @@ La regla de dependencia apunta hacia adentro:
 ## Antes de dar algo por terminado
 
 ```bash
-docker compose exec app composer check   # pint + phpstan + deptrac + pest
+docker compose exec app composer check   # pint + phpstan + rector + deptrac + pest
 ```
 
 Y la checklist completa del PR (`.github/pull_request_template.md`).

@@ -96,10 +96,28 @@ EXPOSE 8000
 
 # Comprobacion por HTTP, no por CLI: `php artisan octane:status` arranca el
 # framework entero y tarda ~17 s sobre el bind mount de Docker Desktop en
-# Windows, asi que jamas cabia dentro del timeout. Ademas medía poder lanzar
+# Windows, asi que jamas cabia dentro del timeout. Ademas media poder lanzar
 # un proceso nuevo, no poder servir peticiones, que es lo que importa.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -fsS -o /dev/null http://127.0.0.1:8000/up || exit 1
 
 ENTRYPOINT ["entrypoint"]
 CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=auto", "--max-requests=500"]
+
+# --- Etapa 4: desarrollo ----------------------------------------------------
+# El runtime tal cual, mas Composer. Existe porque CLAUDE.md manda verificar
+# con `docker compose exec app composer check` y la imagen de produccion no
+# lleva Composer a proposito (hallazgo I9 de la auditoria de reports-trimax).
+# Solo la usa docker-compose en local; produccion sigue construyendo `runtime`.
+FROM runtime AS dev
+
+USER root
+COPY --from=vendor /usr/bin/composer /usr/local/bin/composer
+USER www-data
+
+# www-data no tiene home escribible en la imagen; sin esto Composer y psysh
+# (el REPL de `artisan tinker`) fallan al intentar escribir su cache.
+ENV COMPOSER_HOME=/tmp/composer
+ENV XDG_CONFIG_HOME=/tmp
+ENV XDG_DATA_HOME=/tmp
+ENV HOME=/tmp

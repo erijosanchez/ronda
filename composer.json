@@ -111,6 +111,7 @@
         "check": [
             "@lint",
             "@stan",
+            "@rector",
             "@deptrac",
             "@test"
         ]

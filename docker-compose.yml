@@ -8,7 +8,9 @@ services:
   app:
     build:
       context: .
-      target: runtime
+      # Etapa `dev`: runtime + Composer, para poder correr `composer check`
+      # dentro del contenedor. Produccion construye `runtime`, sin Composer.
+      target: dev
     image: ronda-app:local
     restart: unless-stopped
     env_file: [.env]
