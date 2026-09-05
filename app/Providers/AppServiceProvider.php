@@ -11,17 +11,7 @@ final class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Telescope queda fuera del auto-discovery (composer.json
-        // extra.laravel.dont-discover) y se registra SOLO en local.
         //
-        // Con el descubrimiento automatico se activaba en cualquier entorno y
-        // escribia en `telescope_entries`; sin esa tabla, cada peticion
-        // lanzaba una excepcion. Ver docs/HANDOFF.md
-        //
-        // Para usarlo: php artisan telescope:install && php artisan migrate
-        if ($this->app->environment('local') && class_exists(\Laravel\Telescope\TelescopeServiceProvider::class)) {
-            $this->app->register(\Laravel\Telescope\TelescopeServiceProvider::class);
-        }
     }
 
     public function boot(): void

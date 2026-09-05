@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ronda\Identity\Presentation\Providers;
 
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\View\Factory;
+use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -28,11 +30,11 @@ final class FortifyServiceProvider extends ServiceProvider
 
     private function registerViews(): void
     {
-        Fortify::loginView(fn () => view('auth.login'));
-        Fortify::requestPasswordResetLinkView(fn () => view('auth.forgot-password'));
-        Fortify::resetPasswordView(fn (Request $request) => view('auth.reset-password', ['request' => $request]));
-        Fortify::twoFactorChallengeView(fn () => view('auth.two-factor-challenge'));
-        Fortify::confirmPasswordView(fn () => view('auth.confirm-password'));
+        Fortify::loginView(fn (): Factory|View => view('auth.login'));
+        Fortify::requestPasswordResetLinkView(fn (): Factory|View => view('auth.forgot-password'));
+        Fortify::resetPasswordView(fn (Request $request): Factory|View => view('auth.reset-password', ['request' => $request]));
+        Fortify::twoFactorChallengeView(fn (): Factory|View => view('auth.two-factor-challenge'));
+        Fortify::confirmPasswordView(fn (): Factory|View => view('auth.confirm-password'));
     }
 
     /**

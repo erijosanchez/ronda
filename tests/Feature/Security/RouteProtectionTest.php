@@ -50,7 +50,6 @@ $vendorPatterns = [
     '#^flux/#',               // assets de Flux UI
     '#^passkeys/login#',      // reto WebAuthn: publico por definicion
     '#^tenancy/assets/#',     // assets servidos por stancl/tenancy
-    '#^telescope#',           // autoriza con su propio gate
     '#^horizon#',             // autoriza con su propio gate
     '#^_debugbar/#',
     '#^_ignition/#',

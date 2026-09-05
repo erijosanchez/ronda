@@ -100,11 +100,6 @@ arch('los DTOs son inmutables')
     ])
     ->group('arch');
 
-arch('nada de codigo de depuracion de Laravel en produccion')
-    ->expect('Laravel\Telescope')
-    ->not->toBeUsedIn('Ronda')
-    ->group('arch');
-
 arch('preset de seguridad de Pest')
     ->preset()
     ->security()

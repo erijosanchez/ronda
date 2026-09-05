@@ -25,7 +25,7 @@ final class SecurityHeaders
      *
      * @var array<string, string>
      */
-    private const HEADERS = [
+    private const array HEADERS = [
         'X-Content-Type-Options' => 'nosniff',
         'X-Frame-Options' => 'DENY',
         'Referrer-Policy' => 'strict-origin-when-cross-origin',

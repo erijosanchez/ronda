@@ -94,8 +94,12 @@ USER www-data
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
-    CMD php artisan octane:status || exit 1
+# Comprobacion por HTTP, no por CLI: `php artisan octane:status` arranca el
+# framework entero y tarda ~17 s sobre el bind mount de Docker Desktop en
+# Windows, asi que jamas cabia dentro del timeout. Ademas medía poder lanzar
+# un proceso nuevo, no poder servir peticiones, que es lo que importa.
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -fsS -o /dev/null http://127.0.0.1:8000/up || exit 1
 
 ENTRYPOINT ["entrypoint"]
 CMD ["php", "artisan", "octane:frankenphp", "--host=0.0.0.0", "--port=8000", "--workers=auto", "--max-requests=500"]

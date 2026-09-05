@@ -6,6 +6,7 @@ use Rector\Config\RectorConfig;
 use Rector\Php55\Rector\String_\StringClassNameToClassConstantRector;
 use Rector\Set\ValueObject\LevelSetList;
 use Rector\Set\ValueObject\SetList;
+use Rector\Transform\Rector\String_\StringToClassConstantRector;
 use RectorLaravel\Set\LaravelLevelSetList;
 use RectorLaravel\Set\LaravelSetList;
 
@@ -29,6 +30,14 @@ return RectorConfig::configure()
         StringClassNameToClassConstantRector::class => [
             __DIR__.'/tests/Arch',
         ],
+
+        // Traduce nombres de eventos por cadena de Laravel 5 a ::class, y su
+        // tabla incluye 'auth.login' -> Illuminate\Auth\Events\Login. Eso
+        // colisiona con el nombre de nuestra vista Blade `auth.login`:
+        // convertia view('auth.login') en view(Login::class) y volvia a romper
+        // el login. Este proyecto nace en Laravel 12 y nunca uso eventos por
+        // cadena, asi que la regla no tiene nada legitimo que arreglar aqui.
+        StringToClassConstantRector::class,
     ])
     ->withSets([
         LevelSetList::UP_TO_PHP_84,
