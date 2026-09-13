@@ -127,7 +127,12 @@ return [
      * this will refresh permissions on every TickTerminated, TaskTerminated and RequestTerminated
      * NOTE: This should not be needed in most cases, but an Octane/Vapor combination benefited from it.
      */
-    'register_octane_reset_listener' => false,
+    // Activado: esta aplicacion corre sobre Octane, y el registrar guarda
+    // los permisos en una propiedad del singleton que sobrevive a la
+    // peticion. Esto cubre el limite entre peticiones; el cambio de tenant
+    // dentro de una misma peticion lo cubre
+    // Ronda\Identity\Infrastructure\Listeners\ForgetCachedPermissions.
+    'register_octane_reset_listener' => true,
 
     /*
      * Events will fire when a role or permission is assigned/unassigned:

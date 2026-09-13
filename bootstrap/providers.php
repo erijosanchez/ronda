@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 use App\Providers\AppServiceProvider;
 use App\Providers\TenancyServiceProvider;
+use Ronda\Identity\Presentation\Providers\AuthorizationServiceProvider;
 use Ronda\Identity\Presentation\Providers\FortifyServiceProvider;
 use Ronda\Insights\Presentation\Providers\InsightsServiceProvider;
 
 return [
     AppServiceProvider::class,
     TenancyServiceProvider::class,
+    AuthorizationServiceProvider::class,
     FortifyServiceProvider::class,
     InsightsServiceProvider::class,
 ];

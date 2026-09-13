@@ -37,8 +37,10 @@ enum RoleName: string
     /**
      * Permisos que trae cada rol al provisionar un tenant.
      *
-     * `Owner` no aparece: lo resuelve `Gate::before`, y darle ademas la lista
-     * completa crearia dos fuentes de verdad que se desincronizan.
+     * `Owner` recibe la lista completa, derivada de PermissionName::cases(), asi
+     * que no hay nada que mantener sincronizado a mano. Ademas pasa por
+     * `Gate::before` (OwnerGate), que cubre las habilidades que no se
+     * corresponden con un permiso, como las condiciones propias de una Policy.
      *
      * @return list<PermissionName>
      */

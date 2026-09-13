@@ -8,6 +8,7 @@ use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Ronda\Identity\Infrastructure\Listeners\ForgetCachedPermissions;
 use Stancl\JobPipeline\JobPipeline;
 use Stancl\Tenancy\Events\BootstrappingTenancy;
 use Stancl\Tenancy\Events\CreatingDomain;
@@ -112,11 +113,18 @@ class TenancyServiceProvider extends ServiceProvider
             InitializingTenancy::class => [],
             TenancyInitialized::class => [
                 BootstrapTenancy::class,
+                // Despues de BootstrapTenancy, que es quien conmuta la conexion:
+                // vaciar antes no serviria de nada porque se recargaria con la
+                // base anterior. Ver el escuchador para el detalle.
+                ForgetCachedPermissions::class,
             ],
 
             EndingTenancy::class => [],
             TenancyEnded::class => [
                 RevertToCentralContext::class,
+                // Al volver al contexto central tampoco pueden quedarse los
+                // permisos del tenant que acaba de salir.
+                ForgetCachedPermissions::class,
             ],
 
             BootstrappingTenancy::class => [],
