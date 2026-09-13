@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Ronda\Directory\Database\Seeders\PositionsSeeder;
 use Ronda\Identity\Database\Seeders\RolesAndPermissionsSeeder;
 
 /**
@@ -19,5 +20,6 @@ final class TenantDatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(RolesAndPermissionsSeeder::class);
+        $this->call(PositionsSeeder::class);
     }
 }

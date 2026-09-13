@@ -6,9 +6,11 @@ namespace Ronda\Identity\Domain\Models;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Ronda\Directory\Domain\Models\Site;
 use Ronda\Identity\Database\Factories\UserFactory;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -44,6 +46,21 @@ final class User extends Authenticatable
         'two_factor_secret',
         'two_factor_recovery_codes',
     ];
+
+    /**
+     * Sedes asignadas a esta persona, con su cargo y su rol en cada una.
+     *
+     * La tabla se nombra a mano: el plan la llama `user_site` y Laravel, por
+     * orden alfabetico, buscaria `site_user`.
+     *
+     * @return BelongsToMany<Site, $this>
+     */
+    public function sites(): BelongsToMany
+    {
+        return $this->belongsToMany(Site::class, 'user_site')
+            ->withPivot(['position_id', 'role'])
+            ->withTimestamps();
+    }
 
     /**
      * El modelo no vive en App\Models, asi que la resolucion por convencion de

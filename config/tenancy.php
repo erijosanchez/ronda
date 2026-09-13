@@ -194,7 +194,14 @@ return [
      */
     'migration_parameters' => [
         '--force' => true, // This needs to be true to run migrations in production.
-        '--path' => [database_path('migrations/tenant')],
+        // Las migraciones comunes, mas las que cada modulo guarda en
+        // src/<Modulo>/Database/Migrations (CLAUDE.md). Sin el glob, las de los
+        // modulos no se aplicaban y la carpeta documentada no servia de nada.
+        // Laravel ordena por nombre de archivo entre todas las rutas.
+        '--path' => array_merge(
+            [database_path('migrations/tenant')],
+            glob(base_path('src/*/Database/Migrations')) ?: [],
+        ),
         '--realpath' => true,
     ],
 

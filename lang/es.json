@@ -29,5 +29,18 @@
     "Your roles": "Tus roles",
     "You have no roles assigned yet. Ask whoever administers the account.": "Todavía no tienes ningún rol asignado. Pídeselo a quien administre la cuenta.",
     "No metrics yet": "Aún no hay indicadores",
-    "Metrics will appear once there are sites and submissions on record.": "Los indicadores aparecerán cuando existan sedes y envíos registrados."
+    "Metrics will appear once there are sites and submissions on record.": "Los indicadores aparecerán cuando existan sedes y envíos registrados.",
+    "The branches where rounds are carried out.": "Las sucursales donde se hacen las rondas.",
+    "New site": "Nueva sede",
+    "Search by name or code": "Buscar por nombre o código",
+    "Only active": "Solo activas",
+    "No sites to show": "No hay sedes que mostrar",
+    "You only see the sites assigned to you. If you expect to see more, ask whoever administers the account.": "Solo ves las sedes que tienes asignadas. Si esperabas ver más, pídeselo a quien administre la cuenta.",
+    "Code": "Código",
+    "Name": "Nombre",
+    "Zone": "Zona",
+    "Hours": "Horario",
+    "Status": "Estado",
+    "Closed": "Cerrada",
+    "Active": "Activa"
 }

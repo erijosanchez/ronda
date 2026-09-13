@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
+use Rector\DeadCode\Rector\ClassMethod\RemoveUnusedPublicMethodParameterRector;
 use Rector\Php55\Rector\String_\StringClassNameToClassConstantRector;
 use Rector\Set\ValueObject\LevelSetList;
 use Rector\Set\ValueObject\SetList;
@@ -38,6 +39,14 @@ return RectorConfig::configure()
         // el login. Este proyecto nace en Laravel 12 y nunca uso eventos por
         // cadena, asi que la regla no tiene nada legitimo que arreglar aqui.
         StringToClassConstantRector::class,
+
+        // Las Policies reciben el modelo aunque una comprobacion concreta no
+        // lo mire: es el contrato que invoca Laravel y lo que necesitara
+        // cualquier refinamiento de la regla. Quitarlo deja una firma que
+        // miente sobre lo que la Policy decide.
+        RemoveUnusedPublicMethodParameterRector::class => [
+            __DIR__.'/src/*/Application/Policies/*',
+        ],
     ])
     ->withSets([
         LevelSetList::UP_TO_PHP_84,
