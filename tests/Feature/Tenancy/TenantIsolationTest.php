@@ -30,12 +30,9 @@ it('no comparte la cache entre tenants', function (): void {
 //
 // Ya cubierto alli: usuarios separados por base, credenciales de un tenant
 // rechazadas en el dominio de otro, cambio de contexto por dominio, un job del
-// tenant A que no ve datos del B, y cache sin fugas.
-
-todo('recorre todas las rutas autenticadas con un usuario de otro tenant y exige 403/404')
-    // Bloqueado: el grupo autenticado de routes/tenant.php todavia esta vacio.
-    // Se llena en la fase 1, con el primer modulo que registre rutas.
-    ->group('tenancy');
+// tenant A que no ve datos del B, cache sin fugas, y el recorrido de todas las
+// rutas autenticadas con un usuario del otro tenant
+// (tests/Integration/CrossTenantRouteTest.php).
 
 todo('una URL firmada de evidencia del tenant A se rechaza en el contexto del tenant B')
     // Bloqueado: el modulo Evidence no existe todavia.

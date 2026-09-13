@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Ronda\Platform\Presentation\Http\Middleware\EnsureSessionBelongsToTenant;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 
@@ -26,6 +27,9 @@ Route::middleware([
     'web',
     InitializeTenancyByDomain::class,
     PreventAccessFromCentralDomains::class,
+    // Despues de identificar el tenant: comprueba que la sesion presentada se
+    // abrio en ESTE cliente y no en otro. Ver el middleware.
+    EnsureSessionBelongsToTenant::class,
 ])->group(function (): void {
 
     /*

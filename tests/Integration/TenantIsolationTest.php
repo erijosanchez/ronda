@@ -111,6 +111,12 @@ it('cambia de contexto de tenant al cambiar de dominio', function (): void {
     $this->get('http://alfa.ronda.test/login')->assertOk();
     expect(tenant('id'))->toBe($a->id);
 
+    // El cliente de pruebas reutiliza la misma sesion entre dominios; un
+    // navegador no, porque SESSION_DOMAIN esta vacio y la cookie es host-only.
+    // Sin vaciarla, EnsureSessionBelongsToTenant redirige, que es justo su
+    // trabajo: esa mezcla de sesiones se prueba en CrossTenantRouteTest.
+    $this->flushSession();
+
     $this->get('http://beta.ronda.test/login')->assertOk();
     expect(tenant('id'))->toBe($b->id);
 })->group('tenancy');
