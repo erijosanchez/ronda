@@ -46,9 +46,13 @@ Route::middleware([
     Route::namespace('Laravel\Fortify\Http\Controllers')
         ->group(base_path('vendor/laravel/fortify/routes/routes.php'));
 
+    /*
+     | Zona autenticada. Cada modulo aporta su propio archivo de rutas; ninguno
+     | declara middleware por su cuenta, para que quien entra se decida en un
+     | solo sitio.
+     */
     Route::middleware(['auth'])->group(function (): void {
-        // Los modulos registran aqui sus rutas de tenant conforme se construyan.
-        // Ejemplo (fase 1): Ronda\Submissions\Presentation\routes.php
+        require __DIR__.'/../src/Insights/Presentation/routes.php';
     });
 
 });

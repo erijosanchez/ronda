@@ -22,5 +22,12 @@
     "Overdue": "Vencido",
     "Settings": "Configuración",
     "Users": "Usuarios",
-    "Roles": "Roles"
+    "Roles": "Roles",
+    "My profile": "Mi perfil",
+    "Hello, :name": "Hola, :name",
+    "You are working in :tenant.": "Estás trabajando en :tenant.",
+    "Your roles": "Tus roles",
+    "You have no roles assigned yet. Ask whoever administers the account.": "Todavía no tienes ningún rol asignado. Pídeselo a quien administre la cuenta.",
+    "No metrics yet": "Aún no hay indicadores",
+    "Metrics will appear once there are sites and submissions on record.": "Los indicadores aparecerán cuando existan sedes y envíos registrados."
 }

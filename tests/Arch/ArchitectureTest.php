@@ -98,8 +98,11 @@ arch('los DTOs son inmutables')
         // Factories y seeders heredan de clases de Laravel con propiedades
         // mutables: no pueden declararse readonly.
         'Ronda\Identity\Database',
+        // Presentation tampoco: proveedores y componentes Livewire heredan
+        // de clases del framework con propiedades mutables.
         'Ronda\Platform\Presentation',
         'Ronda\Identity\Presentation',
+        'Ronda\Insights\Presentation',
     ])
     ->group('arch');
 

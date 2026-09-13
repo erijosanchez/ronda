@@ -83,7 +83,14 @@ final class SecurityHeaders
 
         return implode('; ', [
             "default-src 'self'",
-            "script-src 'self' 'nonce-{$nonce}'",
+            // 'unsafe-eval' es para el evaluador de Alpine, que Livewire
+            // empaqueta y que usa `new Function`. Sin el, ninguna directiva
+            // de Alpine se ejecuta. El build CSP-safe de Livewire evita el
+            // `new Function`, pero Flux no funciona con el. Ver ADR 0011.
+            //
+            // 'unsafe-inline' NO esta, y esa es la parte que importa: sin el
+            // nonce nadie puede inyectar un <script> ni un onclick=.
+            "script-src 'self' 'nonce-{$nonce}' 'unsafe-eval'",
             "style-src 'self' 'nonce-{$nonce}'",
             "img-src 'self' data: blob:",
             "font-src 'self'",

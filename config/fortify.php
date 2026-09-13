@@ -12,7 +12,9 @@ return [
     'username' => 'email',
     'email' => 'email',
     'views' => true,
-    'home' => '/home',
+    // Rutas en espanol (CLAUDE.md). `/panel` la registra el modulo Insights
+    // dentro del grupo de tenant: en el dominio central no existe.
+    'home' => '/panel',
     'prefix' => '',
     'domain' => null,
     'lowercase_usernames' => false,
