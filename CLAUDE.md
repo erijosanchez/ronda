@@ -1,8 +1,9 @@
 # Ronda — instrucciones del proyecto
 
 SaaS multi-tenant de control operativo de sucursales. El plan completo vive en
-`../RONDA-PLAN-MAESTRO.md`. Este archivo es el resumen operativo: lo que hay
-que respetar al escribir codigo aqui.
+`../RONDA-PLAN-MAESTRO.md`, un documento interno que NO forma parte de este
+repositorio (el repositorio es publico). Este archivo es el resumen operativo:
+lo que hay que respetar al escribir codigo aqui.
 
 ## Contexto de ejecucion
 
