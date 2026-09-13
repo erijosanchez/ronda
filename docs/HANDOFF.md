@@ -1,15 +1,17 @@
 # Dónde nos quedamos — 13 de septiembre de 2026
 
-Estado del proyecto tras cerrar la **fase 0** y arrancar la fase 1.
-El plan completo está en `../../RONDA-PLAN-MAESTRO.md`.
+Estado del proyecto: **fase 0 cerrada, fase 1 en marcha**.
+El plan completo está en `../../RONDA-PLAN-MAESTRO.md`, documento interno que
+no forma parte de este repositorio (el repositorio es público).
 Léelo antes de retomar; termina con la lista concreta de lo que sigue.
 
 ---
 
 ## Resumen en una línea
 
-Se entra a la aplicación y se aterriza en un panel de verdad. La autorización
-está montada y probada. No hay ningún bloqueante abierto.
+Se entra, se aterriza en un panel, se listan las sedes del cliente, y un
+usuario de un tenant ya no puede alcanzar los datos de otro por ninguna ruta.
+No hay ningún bloqueante abierto.
 
 ---
 
@@ -17,80 +19,90 @@ está montada y probada. No hay ningún bloqueante abierto.
 
 | Puerta | Resultado | Comando |
 |---|---|---|
-| Pint (formato) | **PASS**, 82 archivos | `vendor/bin/pint --test` |
+| Pint (formato) | **PASS**, 96 archivos | `vendor/bin/pint --test` |
 | Larastan nivel 8 | **[OK] No errors**, sin baseline | `vendor/bin/phpstan analyse` |
 | Rector | **[OK] Rector is done!** | `vendor/bin/rector process --dry-run` |
 | Deptrac (módulos) | **0 violaciones** | `vendor/bin/deptrac analyse` |
-| Pest | **58 pasan, 2 todos, 0 fallos** | `vendor/bin/pest` |
+| Pest | **68 pasan, 1 todo, 0 fallos** | `vendor/bin/pest` |
 
 Todo junto: `docker compose exec app composer check` (sale 0).
 
-**Recorrido completo comprobado:** se entra en `demo.localhost:8000/login`, se
-aterriza en `/panel` con el nombre del usuario, el del cliente y sus roles
-traducidos. En el dominio central ni `/login` ni `/panel` existen: 404.
+**Recorrido comprobado a mano:** login en `demo.localhost:8000`, `/panel` con
+nombre, cliente y roles traducidos, y `/sedes` con las cuatro sedes de prueba,
+su zona, su horario y la cerrada marcada como tal. En el dominio central no
+existe ninguna de las dos: 404.
 
-**La suite tarda ~2 minutos.** No es un problema: la suite `Integration`
-provisiona tenants reales (`CREATE DATABASE` + migrar + sembrar en cada
-prueba), y sobre el bind mount de Windows cada arranque del framework se va a
-unos 15 s. Para iterar, `--filter`.
+**La suite tarda ~2 minutos** porque la suite `Integration` provisiona tenants
+reales (`CREATE DATABASE` + migrar + sembrar en cada prueba). Para iterar,
+`--filter`.
 
 ---
 
 ## Lo que se hizo esta sesión
 
-### Panel autenticado (punto 1 de la lista anterior)
+### Módulo `Directory` (plan §8.3)
 
-El login redirigía a `/home`, que no existía: se entraba y se caía en un 404.
-Ahora hay módulo `Insights` con un componente Livewire, su vista y su
-`routes.php`, incluido desde el grupo autenticado de `routes/tenant.php`.
+Zonas con jerarquía propia, sedes, cargos y la asignación usuario ↔ sede. Cada
+sede lleva su zona horaria y su ventana de operación en hora local: una sede de
+Iquitos y otra de Lima no abren a la misma hora UTC.
 
-La ruta es `/panel`, no `/home`: las rutas van en español (`CLAUDE.md`).
+Pantalla `/sedes`, paginada, con búsqueda y filtro de vigentes.
 
-El panel **no inventa indicadores**. Dice que aparecerán cuando haya sedes y
-envíos. Un tablero con cifras falsas es peor que uno vacío.
+La tabla pivote se llama `user_site`, como dice el plan, y no `site_user`, que
+es lo que Laravel deduciría por orden alfabético. La relación lo declara a mano.
 
-### La CSP estricta y Livewire+Flux eran incompatibles
+**Las migraciones de módulo no se aplicaban.** `CLAUDE.md` las sitúa en
+`src/<Modulo>/Database/Migrations`, pero tenancy solo miraba
+`database/migrations/tenant`. Ahora `--path` incluye `src/*/Database/Migrations`.
 
-El evaluador de Alpine que Livewire empaqueta usa `new Function`, que
-`unsafe-eval` bloquea. Sin él **ninguna directiva de Alpine se ejecuta**.
-Livewire trae un build CSP-safe que lo evita, pero **Flux no funciona con él**:
-sus componentes usan `$refs.input.click()`, `$dispatch(...)` y fragmentos JS
-interpolados, y fallarían en silencio.
+### Frontera por sede (plan §10.3), en dos capas
 
-Decisión: `unsafe-eval` en `script-src`. `unsafe-inline` sigue fuera, que es la
-parte que de verdad frena un XSS. Está en el **ADR 0011**, que corrige el ADR
-0004: ese daba por hecho un Alpine «build CSP-safe» que no es viable con Flux
-en el stack.
+`AssignedSitesScope` filtra la consulta por `user_site`; `SitePolicy` vuelve a
+comprobar sobre el registro. No es redundancia: hay un test que desactiva el
+scope con `withoutGlobalScopes()` y exige que la Policy siga negando.
 
-### Autorización (punto 2)
+El scope **no decide autorización**: pregunta por la habilidad `viewAll` y
+responde la Policy. Un `hasRole()` dentro de un scope sería justo lo que
+prohíbe la regla 4.
 
-`OwnerGate` es el único `Gate::before` del proyecto. `UserPolicy` comprueba
-**permisos**, no roles, para que el cliente reorganice sus roles sin tocar
-código; protege al propietario y prohíbe borrarse a uno mismo.
+### 🔴 Una sesión de un tenant servía en el dominio de otro
 
-### 🔴 Fuga de permisos entre tenants
+Al rellenar el `todo()` de aislamiento por rutas apareció una fuga real.
 
-`PermissionRegistrar` de spatie es un singleton que guarda los permisos en una
-propiedad de instancia, y `loadPermissions()` hace cortocircuito si ya la
-tiene. Nadie la vaciaba al cambiar de tenant, y bajo Octane el worker vive
-entre peticiones.
+La sesión solo guarda el identificador numérico del usuario, y los
+identificadores empiezan en 1 en cada base. Presentando en `beta` una sesión
+abierta en `alfa`, el guard resolvía el usuario 1 de beta y entraba como él.
+Medido: `GET beta/sedes` devolvía 200 con los datos de beta, y
+`GET beta/user/two-factor-recovery-codes` devolvía los códigos de recuperación
+del usuario de beta.
 
-**Reproducido:** un permiso creado solo en la base del tenant `alfa` aparecía
-al consultar el registrar dentro de `beta`. El prefijo de caché por tenant no
-ayuda: el problema es la colección en memoria, no el almacén.
+En un navegador no ocurre — `SESSION_DOMAIN` está vacío y la cookie es
+host-only — pero bastaba con trasladar la cookie a mano.
 
-Arreglado con `ForgetCachedPermissions` en `TenancyInitialized` (después de
-`BootstrapTenancy`, que es quien conmuta la conexión) y en `TenancyEnded`, más
-`register_octane_reset_listener` a `true`.
+Arreglado con `EnsureSessionBelongsToTenant`, que anota en la sesión el tenant
+donde se abrió y la destruye si se presenta en otro. **Corta la petición en el
+acto** en lugar de delegar en el middleware `auth`: Laravel ordena por
+prioridad y `Authenticate` corre antes, así que la primera petición se servía
+entera y solo las siguientes quedaban protegidas.
 
-### Un test que pasaba sin comprobar nada
+### Segundo test que pasaba sin comprobar nada
 
-La primera versión de la prueba de esa fuga usaba
-`expect($x)->not->toContain('valor', 'mensaje')`. **`toContain()` es variádico
-en Pest**: el mensaje se tomó como un segundo valor a buscar y la aserción
-quedó vacía — verde con el fallo presente. Conviene recordarlo: las
-expectativas de Pest no aceptan un mensaje como último argumento salvo que su
-firma lo diga (`toBeTrue`, `toBeEmpty`, `toBeNull` sí; `toContain` no).
+El recorrido de rutas filtraba por middleware que contuviera `Authenticate`, y
+eso solo casa con la clase de Horizon: **`/panel` y `/sedes` nunca se pedían**.
+Verde sin haber tocado una pantalla de la aplicación. `gatherMiddleware()` no
+expande los grupos, así que el alias llega como `'auth'` a secas.
+
+Van dos en dos sesiones (antes fue `toContain()` variádico). **Conviene sondear
+toda prueba de seguridad que pase a la primera**: imprimir lo que realmente
+recorre o comparar, antes de darla por buena. Ahora hay un test ancla que exige
+que el recorrido incluya `panel` y `sedes`.
+
+### La regla de arquitectura que había que reformular
+
+La lista blanca de `toBeReadonly()` se escribía a mano y hubo que ampliarla
+tres sesiones seguidas. Ahora se deriva de los once módulos y las capas, que
+son fijas. Sigue siendo denegar por defecto; comprobado rompiendo
+`CreateTenantData` a propósito y viendo fallar la regla.
 
 ---
 
@@ -99,53 +111,45 @@ firma lo diga (`toBeTrue`, `toBeEmpty`, `toBeNull` sí; `toContain` no).
 ### `Gate::before` salta por encima de `UserPolicy`
 
 El propietario puede borrarse a sí mismo: `OwnerGate` devuelve `true` antes de
-que la Policy llegue a ejecutarse. Ese invariante no es de autorización sino de
-negocio («no se puede dejar al tenant sin propietario») y su sitio es la Action
-que borre usuarios, cuando exista. Está anotado en el código.
+que la Policy se ejecute. Ese invariante es de negocio («no dejar al tenant sin
+propietario») y su sitio es la Action que borre usuarios, cuando exista.
 
 ### La regla «los DTOs son inmutables» choca con spatie/laravel-data
 
 PHP no permite que una clase `readonly` extienda una que no lo es, y
 `Spatie\LaravelData\Data` no lo es. Pest exige el modificador a nivel de clase,
-así que **ningún DTO de spatie puede pasar la regla**. `CreateTenantData` se
+así que ningún DTO de spatie puede pasar la regla. `CreateTenantData` se
 resolvió como clase `readonly` propia. Hay que decidir cuál manda antes de que
 un DTO tenga que atarse a un `Request`.
 
-### La lista blanca de `toBeReadonly()` sigue creciendo
+### `positions` y `zones` no tienen pantalla
 
-Cada namespace nuevo de `Presentation`, `Infrastructure` o `Database` hay que
-añadirlo a mano. Esta sesión tocó otra vez. Con once módulos por delante,
-conviene reformular la regla para que exija readonly solo en
-`*\Application\Data`, que es su intención real.
+Las tablas y los modelos existen y el seeder siembra cinco cargos, pero no hay
+interfaz para gestionarlos ni Policy propia. Solo `Site` la tiene.
 
-### Cookie de sesión y colisión de identificadores
+### La tabla `users` del tenant está incompleta
 
-`SESSION_DOMAIN` está vacío, así que la cookie es host-only. Aun así, como los
-identificadores de usuario empiezan en 1 en cada base, una cookie trasplantada
-a mano al dominio de otro cliente resolvería el usuario 1 de esa base. En un
-navegador no puede pasar; para defensa en profundidad, atar la sesión al
-`tenant_id`.
+El plan §8.3 pide también teléfono (con cast `encrypted`), estado y último
+acceso. Hoy solo existe `last_login_at`, y nadie lo escribe.
 
 ---
 
 ## Lo que sigue, en orden
 
-1. **Módulo `Directory`:** zonas, sedes, puestos y asignación usuario ↔ sede
-   (plan §8.3). Es el siguiente cimiento: sin sedes no hay nada que programar
-   ni que reportar. Traerá las primeras rutas autenticadas de verdad.
-2. **Frontera por sede** (plan §10.3): el usuario ve solo las sedes asignadas,
-   con Global Scope **más** verificación en la Policy. Dos capas, porque un
-   scope se puede desactivar sin querer.
-3. **Rellenar el `todo()` de aislamiento por rutas** en cuanto existan rutas
-   autenticadas: recorrerlas todas con un usuario del otro tenant y exigir
-   403/404.
-4. **Gestión de usuarios en la interfaz.** `UserPolicy` ya existe pero no hay
-   pantalla que la use, y la Action `DeleteUser` con el invariante del
-   propietario está pendiente.
-5. **Provisión asíncrona con pantalla de progreso** (plan §7.2). Hoy el job va
-   a la cola pero nadie mira su estado.
-6. **Sentry y Laravel Pulse** (plan §11.5). Solo hay logs.
-7. **`lang/en` solo tiene `roles` y `permissions`**; le falta `validation`.
+1. **Alta y edición de sedes.** El listado existe y el botón «Nueva sede» está
+   puesto pero deshabilitado. Faltan las Actions `CreateSite` / `UpdateSite`
+   con sus DTOs y el formulario.
+2. **Gestión de usuarios en la interfaz.** `UserPolicy` existe pero no hay
+   pantalla que la use, y falta la Action `DeleteUser` con el invariante del
+   propietario.
+3. **Asignación usuario ↔ sede desde la interfaz.** La tabla y las relaciones
+   están; falta la pantalla que las use, que es lo que da sentido a la frontera
+   por sede.
+4. **Provisión asíncrona con pantalla de progreso** (plan §7.2). Hoy el job va
+   a la cola pero nadie mira su estado; el objetivo del plan es menos de 30 s
+   con progreso visible.
+5. **Sentry y Laravel Pulse** (plan §11.5). Solo hay logs.
+6. **`lang/en` solo tiene `roles` y `permissions`**; le falta `validation`.
 
 ---
 
@@ -175,10 +179,12 @@ docker compose exec app php artisan optimize:clear
 docker compose restart app
 ```
 
-Para ver las bases de tenant existentes:
+Tras cambiar migraciones de tenant, aplicarlas al parque:
 
 ```bash
-docker compose exec postgres psql -U ronda -d postgres -c "select datname from pg_database where datname like 'ronda_tnt%'"
+docker compose exec app php artisan tenants:migrate
+docker compose exec app php artisan tenants:seed
 ```
 
-Las reglas de código están en `../CLAUDE.md`. Las decisiones, en `adr/`.
+Las reglas de código están en [`../CLAUDE.md`](../CLAUDE.md). Las decisiones,
+en [`adr/`](adr/).
