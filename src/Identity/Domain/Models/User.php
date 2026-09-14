@@ -7,11 +7,14 @@ namespace Ronda\Identity\Domain\Models;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Carbon;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Ronda\Directory\Domain\Models\Site;
 use Ronda\Identity\Database\Factories\UserFactory;
+use Ronda\Identity\Domain\UserStatus;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -22,6 +25,10 @@ use Spatie\Permission\Traits\HasRoles;
  * @property int $id
  * @property string $name
  * @property string $email
+ * @property string|null $phone
+ * @property UserStatus $status
+ * @property Carbon|null $last_login_at
+ * @property Carbon|null $deleted_at
  */
 final class User extends Authenticatable
 {
@@ -30,13 +37,16 @@ final class User extends Authenticatable
 
     use HasRoles;
     use Notifiable;
+    use SoftDeletes;
     use TwoFactorAuthenticatable;
 
     /** @var list<string> */
     protected $fillable = [
         'name',
         'email',
+        'phone',
         'password',
+        'status',
     ];
 
     /** @var list<string> */
@@ -80,6 +90,10 @@ final class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
+            // Dato sensible: se guarda cifrado (sec. 8.6). No se puede buscar
+            // por telefono en SQL, y se asume.
+            'phone' => 'encrypted',
+            'status' => UserStatus::class,
             'two_factor_confirmed_at' => 'datetime',
             'last_login_at' => 'datetime',
             'password' => 'hashed',

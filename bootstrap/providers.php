@@ -7,6 +7,7 @@ use App\Providers\TenancyServiceProvider;
 use Ronda\Directory\Presentation\Providers\DirectoryServiceProvider;
 use Ronda\Identity\Presentation\Providers\AuthorizationServiceProvider;
 use Ronda\Identity\Presentation\Providers\FortifyServiceProvider;
+use Ronda\Identity\Presentation\Providers\IdentityServiceProvider;
 use Ronda\Insights\Presentation\Providers\InsightsServiceProvider;
 
 return [
@@ -14,6 +15,7 @@ return [
     TenancyServiceProvider::class,
     AuthorizationServiceProvider::class,
     FortifyServiceProvider::class,
+    IdentityServiceProvider::class,
     InsightsServiceProvider::class,
     DirectoryServiceProvider::class,
 ];

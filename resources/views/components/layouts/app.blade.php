@@ -45,6 +45,10 @@
             <flux:navlist.item icon="building-office" :href="route('sites.index')" :current="request()->routeIs('sites.*')">
                 {{ __('Sites') }}
             </flux:navlist.item>
+
+            <flux:navlist.item icon="users" :href="route('users.index')" :current="request()->routeIs('users.*')">
+                {{ __('Users') }}
+            </flux:navlist.item>
         </flux:navlist>
 
         <flux:spacer />
