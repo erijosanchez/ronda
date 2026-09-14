@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Ronda\Directory\Presentation\Livewire\SiteForm;
 use Ronda\Directory\Presentation\Livewire\SiteList;
 
 /*
@@ -15,3 +16,8 @@ use Ronda\Directory\Presentation\Livewire\SiteList;
 */
 
 Route::get('/sedes', SiteList::class)->name('sites.index');
+Route::get('/sedes/nueva', SiteForm::class)->name('sites.create');
+
+// El binding resuelve la sede con el scope de frontera puesto: quien no la
+// tiene asignada recibe un 404 antes de que corra nada.
+Route::get('/sedes/{site}/editar', SiteForm::class)->name('sites.edit');

@@ -1,4 +1,10 @@
 <div class="space-y-6">
+    @if (session('status'))
+        <flux:callout variant="success" icon="check-circle">
+            <flux:callout.text>{{ session('status') }}</flux:callout.text>
+        </flux:callout>
+    @endif
+
     <div class="flex flex-wrap items-end justify-between gap-4">
         <div>
             <flux:heading size="xl">{{ __('Sites') }}</flux:heading>
@@ -6,7 +12,7 @@
         </div>
 
         @if ($canCreate)
-            <flux:button variant="primary" icon="plus" disabled>
+            <flux:button variant="primary" icon="plus" :href="route('sites.create')" wire:navigate>
                 {{ __('New site') }}
             </flux:button>
         @endif
@@ -38,6 +44,7 @@
                 <flux:table.column>{{ __('Zone') }}</flux:table.column>
                 <flux:table.column>{{ __('Hours') }}</flux:table.column>
                 <flux:table.column>{{ __('Status') }}</flux:table.column>
+                <flux:table.column />
             </flux:table.columns>
 
             <flux:table.rows>
@@ -61,6 +68,20 @@
                                 <flux:badge color="zinc" size="sm">{{ __('Closed') }}</flux:badge>
                             @else
                                 <flux:badge color="green" size="sm">{{ __('Active') }}</flux:badge>
+                            @endif
+                        </flux:table.cell>
+
+                        <flux:table.cell align="end">
+                            @if ($canCreate)
+                                <flux:button
+                                    size="sm"
+                                    variant="ghost"
+                                    icon="pencil-square"
+                                    :href="route('sites.edit', $site)"
+                                    wire:navigate
+                                >
+                                    {{ __('Edit') }}
+                                </flux:button>
                             @endif
                         </flux:table.cell>
                     </flux:table.row>

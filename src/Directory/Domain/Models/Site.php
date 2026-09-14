@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Ronda\Directory\Database\Factories\SiteFactory;
 use Ronda\Directory\Domain\Scopes\AssignedSitesScope;
 use Ronda\Identity\Domain\Models\User;
@@ -28,7 +29,15 @@ use Ronda\Identity\Domain\Models\User;
  * @property string $code
  * @property string $name
  * @property int|null $zone_id
+ * @property string|null $address
+ * @property string|null $latitude decimal: llega como texto, no como float
+ * @property string|null $longitude
  * @property string $timezone
+ * @property string|null $opens_at hora local de la sede, `HH:MM:SS`
+ * @property string|null $closes_at
+ * @property Carbon|null $active_from
+ * @property Carbon|null $active_until
+ * @property Carbon|null $deleted_at
  */
 #[ScopedBy(AssignedSitesScope::class)]
 final class Site extends Model

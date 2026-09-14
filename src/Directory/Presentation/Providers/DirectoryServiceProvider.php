@@ -6,6 +6,7 @@ namespace Ronda\Directory\Presentation\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use Ronda\Directory\Presentation\Livewire\SiteForm;
 use Ronda\Directory\Presentation\Livewire\SiteList;
 
 /**
@@ -21,5 +22,6 @@ final class DirectoryServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../Views', 'directory');
 
         Livewire::component('directory.site-list', SiteList::class);
+        Livewire::component('directory.site-form', SiteForm::class);
     }
 }
