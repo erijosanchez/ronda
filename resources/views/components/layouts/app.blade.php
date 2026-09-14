@@ -46,6 +46,10 @@
                 {{ __('Sites') }}
             </flux:navlist.item>
 
+            <flux:navlist.item icon="document-text" :href="route('templates.index')" :current="request()->routeIs('templates.*')">
+                {{ __('Templates') }}
+            </flux:navlist.item>
+
             <flux:navlist.item icon="users" :href="route('users.index')" :current="request()->routeIs('users.*')">
                 {{ __('Users') }}
             </flux:navlist.item>

@@ -59,6 +59,7 @@ Route::middleware([
         require __DIR__.'/../src/Insights/Presentation/routes.php';
         require __DIR__.'/../src/Directory/Presentation/routes.php';
         require __DIR__.'/../src/Identity/Presentation/routes.php';
+        require __DIR__.'/../src/Forms/Presentation/routes.php';
     });
 
 });

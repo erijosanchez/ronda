@@ -92,7 +92,7 @@ it('publica la primera version y la deja vigente', function (): void {
         );
 
         expect($version->number)->toBe(1)
-            ->and($version->isPublished())->toBeTrue()
+            ->and($version->published_at)->not->toBeNull()
             ->and($version->published_by)->toBe(propietariaForms()->getKey());
 
         $plantilla->refresh();

@@ -8,6 +8,8 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Ronda\Directory\Application\Policies\SitePolicy;
 use Ronda\Directory\Domain\Models\Site;
+use Ronda\Forms\Application\Policies\TemplatePolicy;
+use Ronda\Forms\Domain\Models\Template;
 use Ronda\Identity\Application\Policies\OwnerGate;
 use Ronda\Identity\Application\Policies\UserPolicy;
 use Ronda\Identity\Domain\Models\User;
@@ -28,6 +30,7 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
     protected $policies = [
         User::class => UserPolicy::class,
         Site::class => SitePolicy::class,
+        Template::class => TemplatePolicy::class,
     ];
 
     public function boot(): void

@@ -13,14 +13,15 @@ use Ronda\Identity\Domain\Models\User;
 /**
  * Una version del formulario. Ver docs/adr/0012.
  *
- * Una vez publicada NO se modifica. Es lo que permite que un envio de marzo se
- * lea con la plantilla de marzo.
+ * Toda version nace publicada: el plan (sec. 9.2) no contempla borradores, y
+ * `published_at` es NOT NULL. Una vez creada NO se modifica, que es lo que
+ * permite que un envio de marzo se lea con la plantilla de marzo.
  *
  * @property int $id
  * @property int $template_id
  * @property int $number
  * @property array<int, array<string, mixed>> $schema
- * @property Carbon|null $published_at
+ * @property Carbon $published_at
  * @property int|null $published_by
  */
 final class TemplateVersion extends Model
@@ -58,11 +59,6 @@ final class TemplateVersion extends Model
         $schema = array_values($this->schema);
 
         return FormSchema::fromArray($schema);
-    }
-
-    public function isPublished(): bool
-    {
-        return $this->published_at !== null;
     }
 
     /**

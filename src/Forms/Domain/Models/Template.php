@@ -48,18 +48,6 @@ final class Template extends Model
         return $this->belongsTo(TemplateVersion::class, 'current_version_id');
     }
 
-    /**
-     * El borrador en curso, si lo hay. Solo puede haber uno: PublishVersion lo
-     * consume al publicar.
-     */
-    public function draft(): ?TemplateVersion
-    {
-        return $this->versions()
-            ->whereNull('published_at')
-            ->orderByDesc('number')
-            ->first();
-    }
-
     public function nextVersionNumber(): int
     {
         return (int) $this->versions()->max('number') + 1;
