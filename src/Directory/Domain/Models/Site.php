@@ -33,6 +33,7 @@ use Ronda\Identity\Domain\Models\User;
  * @property string|null $latitude decimal: llega como texto, no como float
  * @property string|null $longitude
  * @property string $timezone
+ * @property-read SiteAssignment|null $pivot  solo al cargarse por la relacion
  * @property string|null $opens_at hora local de la sede, `HH:MM:SS`
  * @property string|null $closes_at
  * @property Carbon|null $active_from
@@ -76,11 +77,12 @@ final class Site extends Model
      * La tabla se nombra a mano: el plan la llama `user_site` y Laravel, por
      * orden alfabetico, buscaria `site_user`.
      *
-     * @return BelongsToMany<User, $this>
+     * @return BelongsToMany<User, $this, SiteAssignment>
      */
     public function users(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'user_site')
+            ->using(SiteAssignment::class)
             ->withPivot(['position_id', 'role'])
             ->withTimestamps();
     }

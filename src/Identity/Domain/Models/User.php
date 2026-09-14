@@ -13,6 +13,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Ronda\Directory\Domain\Models\Site;
+use Ronda\Directory\Domain\Models\SiteAssignment;
 use Ronda\Identity\Database\Factories\UserFactory;
 use Ronda\Identity\Domain\UserStatus;
 use Spatie\Permission\Traits\HasRoles;
@@ -63,11 +64,12 @@ final class User extends Authenticatable
      * La tabla se nombra a mano: el plan la llama `user_site` y Laravel, por
      * orden alfabetico, buscaria `site_user`.
      *
-     * @return BelongsToMany<Site, $this>
+     * @return BelongsToMany<Site, $this, SiteAssignment>
      */
     public function sites(): BelongsToMany
     {
         return $this->belongsToMany(Site::class, 'user_site')
+            ->using(SiteAssignment::class)
             ->withPivot(['position_id', 'role'])
             ->withTimestamps();
     }

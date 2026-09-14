@@ -37,6 +37,24 @@ final readonly class UserPolicy
         return $actor->hasPermissionTo(PermissionName::UserManage->value);
     }
 
+    /**
+     * Decidir en que sedes trabaja alguien es gestionar su acceso, no gestionar
+     * el parque: pide `user.manage`, no `site.manage`.
+     *
+     * Quien no administra sedes solo vera en el selector las suyas, porque
+     * AssignedSitesScope le filtra la consulta: no se puede dar acceso a una
+     * sede que uno mismo no alcanza.
+     *
+     * Con los roles predefinidos ese limite no llega a notarse, porque los dos
+     * que traen `user.manage` (owner y admin) traen tambien `site.manage`.
+     * Empieza a valer en cuanto el cliente cree un rol que gestione personas
+     * sin administrar sedes, que es algo que el plan contempla (sec. 10.3).
+     */
+    public function assignSites(User $actor, User $target): bool
+    {
+        return $actor->hasPermissionTo(PermissionName::UserManage->value);
+    }
+
     public function update(User $actor, User $target): bool
     {
         if ($this->isOwner($target)) {

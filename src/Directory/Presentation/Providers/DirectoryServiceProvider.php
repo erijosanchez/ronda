@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Ronda\Directory\Presentation\Livewire\SiteForm;
 use Ronda\Directory\Presentation\Livewire\SiteList;
+use Ronda\Directory\Presentation\Livewire\UserSiteAssignments;
 
 /**
  * Registra lo que el modulo Directory aporta al contenedor.
@@ -23,5 +24,6 @@ final class DirectoryServiceProvider extends ServiceProvider
 
         Livewire::component('directory.site-list', SiteList::class);
         Livewire::component('directory.site-form', SiteForm::class);
+        Livewire::component('directory.user-site-assignments', UserSiteAssignments::class);
     }
 }

@@ -96,5 +96,16 @@
     "phone": "teléfono",
     "status": "estado",
     "roles": "roles",
-    "password": "contraseña"
+    "password": "contraseña",
+    "Sites for :name": "Sedes de :name",
+    "A person only sees the sites assigned here. The role applies to that site alone.": "Una persona solo ve las sedes que se le asignen aquí. El rol vale solo para esa sede.",
+    ":count assigned": ":count asignadas",
+    "Site": "Sede",
+    "Position": "Cargo",
+    "Role at this site": "Rol en esta sede",
+    "No position": "Sin cargo",
+    "No specific role": "Sin rol específico",
+    "Assign :site": "Asignar :site",
+    "Save assignments": "Guardar asignaciones",
+    "Assignments saved.": "Asignaciones guardadas."
 }

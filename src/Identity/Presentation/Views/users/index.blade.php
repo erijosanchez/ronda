@@ -78,6 +78,16 @@
                                 <flux:button
                                     size="sm"
                                     variant="ghost"
+                                    icon="building-office"
+                                    :href="route('users.sites', $user)"
+                                    wire:navigate
+                                >
+                                    {{ __('Sites') }}
+                                </flux:button>
+
+                                <flux:button
+                                    size="sm"
+                                    variant="ghost"
                                     icon="pencil-square"
                                     :href="route('users.edit', $user)"
                                     wire:navigate
