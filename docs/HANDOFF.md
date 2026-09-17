@@ -1,8 +1,8 @@
-# Dónde nos quedamos — 17 de septiembre de 2026
+# Dónde nos quedamos — 18 de septiembre de 2026
 
-Estado del proyecto: **fase 0 cerrada; fase 1 con los
-cinco primeros eslabones del motor en pie y operables desde la interfaz: se
-programa, se entrega con evidencia y se revisa**.
+Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo salvo los
+KPI: se programa, se entrega con evidencia, se revisa
+y el sistema avisa y escala solo**.
 El plan completo está en `../../RONDA-PLAN-MAESTRO.md`, documento interno que
 no forma parte de este repositorio (el repositorio es público).
 
@@ -13,8 +13,8 @@ no forma parte de este repositorio (el repositorio es público).
 Se diseñan plantillas, se programan **desde la pantalla**, el motor materializa
 las obligaciones, y el encargado ve su lista de pendientes de hoy y entrega el
 reporte **con fotos, archivos y firma**, que cumple la obligación. El
-supervisor lo **aprueba o lo rechaza** con motivo, y la sede lo corrige. Lo que
-falta es **avisar** y **medir**.
+supervisor lo **aprueba o lo rechaza** con motivo, y la sede lo corrige. Por el
+camino el sistema **recuerda, avisa y escala** solo. Lo que falta es **medir**.
 
 ```
 PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO ✅ → KPI
@@ -37,12 +37,51 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Scheduling` | Programaciones RRULE, feriados, materialización y replanificación de obligaciones | `/programaciones` |
 | `Submissions` | Entrega de reportes, validación contra la versión, réplica reportable, ficha del envío | `/pendientes`, `/envios/{id}` |
 | `Workflow` | Revisión: tomar, aprobar, rechazar, corregir; historial, comentarios y revisiones anteriores | `/revision`, `/envios/{id}/corregir` |
+| `Notifications` | Recordatorios, escalamiento por SLA, campana in-app y correo | `/notificaciones` |
 | `Evidence` | Fotos, archivos y firma en bucket privado; SHA-256, EXIF, distancia a la sede, URL firmada | `/evidencia/{id}` (firmada) |
 | `Insights` | Panel de aterrizaje | `/panel` |
 
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### `Notifications` — recordatorios y escalamiento (§9.3 y §9.4)
+
+- **Seis avisos**: entrega que vence pronto, entrega no realizada, envío que
+  llega a la bandeja, revisión atrasada, envío aprobado y envío rechazado (con
+  el motivo dentro, para no tener que abrir la aplicación para saber qué
+  corregir).
+- **Canales por tema** en `config/notifications.php`: campana in-app y correo.
+  **WhatsApp no está**: se añade como canal sin tocar Actions ni oyentes, porque
+  la entrega vive detrás de `OperationalMessenger`.
+- **Escalera configurable** (`EscalationLadder`, pura y probada aparte): lo
+  incumplido avisa a la sede al momento, a quien revisa a las 2 h y a quien
+  administra al día siguiente; una revisión parada reclama a las 24 h y escala a
+  las 48 h. Si el job estuvo parado salen todos los peldaños vencidos, cada uno
+  con su nivel.
+- **Nada se repite**: `NotifyOnce` anota en `sla_events` (restricción única por
+  asunto, tema y nivel) **antes** de mandar. El job horario puede repasar el
+  parque entero sin volver a avisar. Un envío corregido sí puede volver a
+  escalar: su nivel lleva sumada la revisión.
+- **A quien puede hacer algo**: los destinatarios se resuelven preguntando a las
+  Policies persona a persona (regla 4), no consultando roles. Nadie recibe por
+  correo algo que no podría abrir.
+- **Las URL llevan el dominio del cliente** (`TenantUrlQuery`): en un job no hay
+  petición, y `route()` habría enlazado al dominio central.
+- **Campana en la cabecera** (se refresca sola cada minuto) y `/notificaciones`
+  con «solo sin leer» y marcar como leídas.
+- Comando `notifications:sla`, un job por tenant, programado cada hora **diez
+  minutos después** de `obligations:materialize`: primero se marca lo
+  incumplido, luego se avisa.
+- **Arquitectura:** `Application` no conoce `Infrastructure`, así que la entrega
+  pasa por el contrato `OperationalMessenger` y los oyentes se enchufan en
+  `NotificationsEventServiceProvider`, que vive en `Infrastructure` (deptrac
+  rechazó las dos versiones anteriores).
+- `SubmitReport` ahora lanza `SubmissionSubmitted` (§6.2), del que cuelga el
+  aviso a quien revisa.
+- Verificado a mano contra Mailpit: el correo llega con su asunto y el aviso
+  queda en la campana. Sondeado quitando la anotación previa, el filtro de
+  destinatarios, la ventana de apertura y el desfase por revisión.
 
 ### `Workflow` — revisión y aprobación (§9.4)
 
@@ -71,7 +110,8 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
   (cada cambio de estado con actor, hora y comentario, incluida la entrega).
   Además `submission_comments` y `submission_revisions`.
 - Eventos `SubmissionTaken/Approved/Rejected/Corrected` con
-  `ShouldDispatchAfterCommit`, listos para `Notifications`; aún sin oyentes.
+  `ShouldDispatchAfterCommit`; `Notifications` ya escucha los de aprobación y
+  rechazo.
 - **Pantallas:** bandeja `/revision` (por estado, «solo los míos», búsqueda,
   frontera por sede), panel en la ficha del envío (decidir, historial,
   comentarios), `/envios/{id}/corregir` y, en pendientes, «Rechazados, por
@@ -239,6 +279,10 @@ cada sede.
 
 ## Puntos abiertos (ninguno bloquea)
 
+- **Notifications, pendiente:** WhatsApp (§5.2; el trámite con Meta es del
+  plan de fase 1), preferencias por persona y por tema (hoy los canales son del
+  sistema), plazos de SLA por plantilla (`sla_policies`) en vez de una escalera
+  global, calendario laboral aplicado a los plazos, y push web (§13).
 - **Workflow, pendiente:** SLA de revisión y escalamiento (van con
   `Notifications`), liberar o reasignar un envío tomado (hoy nadie puede
   quitárselo a quien lo tomó), ver en pantalla las respuestas de revisiones
@@ -274,7 +318,7 @@ cada sede.
 1. ~~Pantalla de programaciones.~~ Hecha.
 2. ~~`Evidence`.~~ Hecho (con los pendientes de arriba).
 3. ~~`Workflow`.~~ Hecho (con los pendientes de arriba).
-4. **`Notifications`** — recordatorios y escalamiento.
+4. ~~`Notifications`.~~ Hecho (con los pendientes de arriba).
 5. **`Insights`** — KPI de cumplimiento: `fulfilled / (fulfilled + missed)`.
 6. **`Api`**, Sentry/Pulse, provisión asíncrona con progreso.
 

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 use Ronda\Directory\Domain\Models\Site;
+use Ronda\Forms\Domain\Models\Template;
 use Ronda\Scheduling\Domain\States\ObligationStatus;
 use Spatie\ModelStates\HasStates;
 
@@ -46,6 +47,17 @@ final class Obligation extends Model
     public function schedule(): BelongsTo
     {
         return $this->belongsTo(Schedule::class);
+    }
+
+    /**
+     * La plantilla que se pide. La columna se copia al materializar (ver la
+     * migracion), asi que no hace falta pasar por la programacion.
+     *
+     * @return BelongsTo<Template, $this>
+     */
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(Template::class);
     }
 
     /**

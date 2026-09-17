@@ -22,3 +22,16 @@ Schedule::command('obligations:materialize')
     ->hourly()
     ->withoutOverlapping()
     ->onOneServer();
+
+// El repaso de SLA (sec. 9.4): recordatorios previos, escalamiento de lo
+// incumplido y de lo que lleva demasiado esperando revision.
+//
+// Diez minutos despues de la materializacion, y no a la vez: quien marca una
+// obligacion como incumplida es el job anterior, y avisar antes de que lo haga
+// dejaria el escalamiento una hora por detras. Cada aviso se anota antes de
+// mandarse, asi que solaparse no duplicaria nada; el orden es por puntualidad,
+// no por seguridad.
+Schedule::command('notifications:sla')
+    ->hourlyAt(10)
+    ->withoutOverlapping()
+    ->onOneServer();
