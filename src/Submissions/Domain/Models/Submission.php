@@ -13,6 +13,9 @@ use Ronda\Forms\Domain\Models\TemplateVersion;
 use Ronda\Identity\Domain\Models\User;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Submissions\Domain\States\SubmissionState;
+use Ronda\Workflow\Domain\Models\SubmissionComment;
+use Ronda\Workflow\Domain\Models\SubmissionRevision;
+use Ronda\Workflow\Domain\Models\SubmissionTransition;
 use Spatie\ModelStates\HasStates;
 
 /**
@@ -28,6 +31,10 @@ use Spatie\ModelStates\HasStates;
  * @property int $site_id
  * @property int|null $obligation_id
  * @property int $author_id
+ * @property int|null $reviewer_id
+ * @property Carbon|null $review_started_at
+ * @property Carbon|null $reviewed_at
+ * @property int $revision
  * @property SubmissionState $state
  * @property array<string, mixed> $data
  * @property Carbon $submitted_at
@@ -42,6 +49,7 @@ final class Submission extends Model
     protected $fillable = [
         'template_id', 'template_version_id', 'site_id', 'obligation_id', 'author_id',
         'state', 'data', 'submitted_at', 'is_late', 'minutes_late',
+        'reviewer_id', 'review_started_at', 'reviewed_at', 'revision',
     ];
 
     /**
@@ -77,6 +85,58 @@ final class Submission extends Model
     }
 
     /**
+     * Quien lo esta revisando o lo reviso.
+     *
+     * @return BelongsTo<User, $this>
+     */
+    public function reviewer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reviewer_id');
+    }
+
+    /**
+     * Historial de estados, en orden.
+     *
+     * @return HasMany<SubmissionTransition, $this>
+     */
+    public function transitions(): HasMany
+    {
+        return $this->hasMany(SubmissionTransition::class)->orderBy('id');
+    }
+
+    /**
+     * @return HasMany<SubmissionComment, $this>
+     */
+    public function comments(): HasMany
+    {
+        return $this->hasMany(SubmissionComment::class)->orderBy('id');
+    }
+
+    /**
+     * Lo que decia antes de cada correccion.
+     *
+     * @return HasMany<SubmissionRevision, $this>
+     */
+    public function revisions(): HasMany
+    {
+        return $this->hasMany(SubmissionRevision::class)->orderBy('number');
+    }
+
+    /**
+     * Ids de evidencia que la respuesta VIGENTE usa en un campo. Tras una
+     * correccion, los archivos sustituidos siguen en `attachments` pero ya no
+     * se listan aqui.
+     *
+     * @return list<string>
+     */
+    public function evidenceIds(string $fieldKey): array
+    {
+        $valor = $this->data[$fieldKey] ?? [];
+
+        return is_array($valor) ? array_values(array_map(strval(...), $valor)) : [];
+    }
+
+    /**
      * @return HasMany<SubmissionValue, $this>
      */
     public function values(): HasMany
@@ -95,6 +155,9 @@ final class Submission extends Model
             'submitted_at' => 'datetime',
             'is_late' => 'boolean',
             'minutes_late' => 'integer',
+            'review_started_at' => 'datetime',
+            'reviewed_at' => 'datetime',
+            'revision' => 'integer',
         ];
     }
 }

@@ -46,6 +46,13 @@
                 {{ __('Pending today') }}
             </flux:navlist.item>
 
+            {{-- Solo para quien revisa: a un encargado le daria un 403. --}}
+            @can('viewInbox', \Ronda\Submissions\Domain\Models\Submission::class)
+                <flux:navlist.item icon="inbox-stack" :href="route('reviews.index')" :current="request()->routeIs('reviews.*')">
+                    {{ __('Review') }}
+                </flux:navlist.item>
+            @endcan
+
             <flux:navlist.item icon="building-office" :href="route('sites.index')" :current="request()->routeIs('sites.*')">
                 {{ __('Sites') }}
             </flux:navlist.item>

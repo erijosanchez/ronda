@@ -7,14 +7,9 @@ namespace Ronda\Submissions\Application\Actions;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
 use Ronda\Evidence\Application\Actions\DiscardEvidence;
-use Ronda\Evidence\Application\Actions\StoreEvidence;
 use Ronda\Evidence\Application\Data\EvidenceUpload;
-use Ronda\Evidence\Domain\EvidenceKind;
-use Ronda\Evidence\Domain\Exceptions\InvalidEvidence;
 use Ronda\Forms\Domain\Models\Template;
 use Ronda\Forms\Domain\Models\TemplateVersion;
-use Ronda\Forms\Domain\ValueObjects\Field;
-use Ronda\Forms\Domain\ValueObjects\FormSchema;
 use Ronda\Identity\Domain\Models\User;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Scheduling\Domain\States\Fulfilled;
@@ -25,6 +20,7 @@ use Ronda\Submissions\Domain\Models\Submission;
 use Ronda\Submissions\Domain\Services\AnswerValidator;
 use Ronda\Submissions\Domain\Services\ReportableValues;
 use Ronda\Submissions\Domain\States\Submitted;
+use Ronda\Workflow\Application\Actions\RecordTransition;
 use Throwable;
 
 /**
@@ -58,8 +54,9 @@ final readonly class SubmitReport
         private ConnectionInterface $connection,
         private AnswerValidator $validator,
         private ReportableValues $reportable,
-        private StoreEvidence $storeEvidence,
+        private StoreAnswerEvidence $storeAnswerEvidence,
         private DiscardEvidence $discardEvidence,
+        private RecordTransition $recordTransition,
     ) {}
 
     /**
@@ -68,7 +65,6 @@ final readonly class SubmitReport
      *
      * @throws CannotSubmit
      * @throws InvalidAnswers
-     * @throws InvalidEvidence
      */
     public function __invoke(
         Obligation $obligation,
@@ -145,7 +141,11 @@ final readonly class SubmitReport
             'minutes_late' => $tarde ? (int) floor($obligation->due_at->diffInMinutes($now, true)) : 0,
         ]);
 
-        $limpias = $this->storeEvidence($submission, $schema, $limpias, $evidence, $author, $escritas);
+        $limpias = ($this->storeAnswerEvidence)($submission, $schema, $limpias, $evidence, $author, $escritas);
+
+        if ($limpias !== $submission->data) {
+            $submission->forceFill(['data' => $limpias])->save();
+        }
 
         $filas = $this->reportable->extract($schema, $limpias);
 
@@ -159,66 +159,10 @@ final readonly class SubmitReport
             'fulfilled_at' => $now,
         ])->save();
 
+        // Primera linea del historial del envio (Workflow).
+        ($this->recordTransition)($submission, null, Submitted::$name, $author);
+
         return $submission;
-    }
-
-    /**
-     * Guarda la evidencia de los campos que el validador acepto y pone en
-     * `data` los ids de sus archivos. Lo que llego para un campo inexistente,
-     * oculto o de otro tipo no se guarda.
-     *
-     * @param  array<string, string|bool|list<string>>  $limpias
-     * @param  array<string, list<EvidenceUpload>>  $evidence
-     * @param  list<string>  $escritas
-     * @return array<string, string|bool|list<string>>
-     */
-    private function storeEvidence(
-        Submission $submission,
-        FormSchema $schema,
-        array $limpias,
-        array $evidence,
-        User $author,
-        array &$escritas,
-    ): array {
-        $hubo = false;
-
-        foreach ($evidence as $clave => $archivos) {
-            $field = $schema->field($clave);
-
-            if (! $field instanceof Field || ! array_key_exists($clave, $limpias)) {
-                continue;
-            }
-
-            $clase = EvidenceKind::forFieldType($field->type);
-
-            if (! $clase instanceof EvidenceKind) {
-                continue;
-            }
-
-            $ids = [];
-
-            foreach ($archivos as $archivo) {
-                try {
-                    $adjunto = ($this->storeEvidence)($submission, $clave, $clase, $archivo, $author);
-                } catch (InvalidEvidence $e) {
-                    // Con la clave del campo, para que la pantalla lo muestre
-                    // donde corresponde.
-                    throw new InvalidAnswers([$clave => "«{$field->label}»: {$e->getMessage()}"]);
-                }
-
-                $escritas[] = $adjunto->path;
-                $ids[] = (string) $adjunto->getKey();
-            }
-
-            $limpias[$clave] = $ids;
-            $hubo = true;
-        }
-
-        if ($hubo) {
-            $submission->forceFill(['data' => $limpias])->save();
-        }
-
-        return $limpias;
     }
 
     private function guardWindow(Obligation $obligation, CarbonImmutable $now): void

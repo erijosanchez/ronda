@@ -10,6 +10,28 @@
         <flux:subheading>{{ __('What your sites have to report, sorted by deadline.') }}</flux:subheading>
     </div>
 
+    @if ($toCorrect->isNotEmpty())
+        <div class="space-y-3">
+            <flux:heading size="lg">{{ __('Rejected, to correct') }}</flux:heading>
+
+            <flux:table :paginate="$toCorrect">
+                <flux:table.rows>
+                    @foreach ($toCorrect as $envio)
+                        <flux:table.row :key="'corregir-'.$envio->id">
+                            <flux:table.cell variant="strong">{{ $envio->templateVersion?->template?->name }}</flux:table.cell>
+                            <flux:table.cell>{{ $envio->site?->name }}</flux:table.cell>
+                            <flux:table.cell align="end">
+                                <flux:button size="sm" variant="primary" :href="route('submissions.correct', $envio)" wire:navigate>
+                                    {{ __('Correct') }}
+                                </flux:button>
+                            </flux:table.cell>
+                        </flux:table.row>
+                    @endforeach
+                </flux:table.rows>
+            </flux:table>
+        </div>
+    @endif
+
     @if ($obligations->isEmpty())
         <flux:callout icon="check-badge">
             <flux:callout.heading>{{ __('Nothing pending') }}</flux:callout.heading>
