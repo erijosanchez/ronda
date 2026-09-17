@@ -10,6 +10,7 @@ use Ronda\Identity\Presentation\Providers\AuthorizationServiceProvider;
 use Ronda\Identity\Presentation\Providers\FortifyServiceProvider;
 use Ronda\Identity\Presentation\Providers\IdentityServiceProvider;
 use Ronda\Insights\Presentation\Providers\InsightsServiceProvider;
+use Ronda\Scheduling\Presentation\Providers\SchedulingServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -20,4 +21,5 @@ return [
     InsightsServiceProvider::class,
     DirectoryServiceProvider::class,
     FormsServiceProvider::class,
+    SchedulingServiceProvider::class,
 ];

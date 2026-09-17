@@ -22,6 +22,7 @@
         "livewire/flux": "^2.18",
         "livewire/livewire": "^4.4",
         "predis/predis": "^3.6",
+        "rlanvin/php-rrule": "^3.0",
         "spatie/laravel-activitylog": "^5.0",
         "spatie/laravel-data": "^4.23",
         "spatie/laravel-model-states": "^2.14",

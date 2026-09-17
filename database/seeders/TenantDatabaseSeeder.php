@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Ronda\Directory\Database\Seeders\PositionsSeeder;
 use Ronda\Identity\Database\Seeders\RolesAndPermissionsSeeder;
+use Ronda\Scheduling\Database\Seeders\HolidaysSeeder;
 
 /**
  * Semilla que corre DENTRO de la base de cada tenant, no en la central.
@@ -21,5 +22,6 @@ final class TenantDatabaseSeeder extends Seeder
     {
         $this->call(RolesAndPermissionsSeeder::class);
         $this->call(PositionsSeeder::class);
+        $this->call(HolidaysSeeder::class);
     }
 }
