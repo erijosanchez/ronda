@@ -84,6 +84,8 @@
 
         <flux:spacer />
 
+        <livewire:notifications.notification-bell />
+
         <x-app.user-menu />
     </flux:header>
 

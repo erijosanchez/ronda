@@ -35,6 +35,8 @@ use Spatie\ModelStates\HasStates;
  * @property Carbon|null $review_started_at
  * @property Carbon|null $reviewed_at
  * @property int $revision
+ * @property Carbon $created_at
+ * @property Carbon $updated_at
  * @property SubmissionState $state
  * @property array<string, mixed> $data
  * @property Carbon $submitted_at

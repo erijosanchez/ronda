@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ronda\Submissions\Application\Actions;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\ConnectionInterface;
 use Ronda\Evidence\Application\Actions\DiscardEvidence;
 use Ronda\Evidence\Application\Data\EvidenceUpload;
@@ -14,6 +15,7 @@ use Ronda\Identity\Domain\Models\User;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Scheduling\Domain\States\Fulfilled;
 use Ronda\Scheduling\Domain\States\Pending;
+use Ronda\Submissions\Domain\Events\SubmissionSubmitted;
 use Ronda\Submissions\Domain\Exceptions\CannotSubmit;
 use Ronda\Submissions\Domain\Exceptions\InvalidAnswers;
 use Ronda\Submissions\Domain\Models\Submission;
@@ -57,6 +59,7 @@ final readonly class SubmitReport
         private StoreAnswerEvidence $storeAnswerEvidence,
         private DiscardEvidence $discardEvidence,
         private RecordTransition $recordTransition,
+        private Dispatcher $events,
     ) {}
 
     /**
@@ -161,6 +164,9 @@ final readonly class SubmitReport
 
         // Primera linea del historial del envio (Workflow).
         ($this->recordTransition)($submission, null, Submitted::$name, $author);
+
+        // De aqui cuelga lo que pasa despues: avisar a quien revisa (sec. 6.2).
+        $this->events->dispatch(new SubmissionSubmitted($submission->id, (int) $author->getKey()));
 
         return $submission;
     }
