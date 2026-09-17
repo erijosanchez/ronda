@@ -13,6 +13,8 @@ use Ronda\Forms\Domain\Models\Template;
 use Ronda\Identity\Application\Policies\OwnerGate;
 use Ronda\Identity\Application\Policies\UserPolicy;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Scheduling\Domain\Models\Obligation;
+use Ronda\Submissions\Application\Policies\ObligationPolicy;
 
 /**
  * Enlaza modelos con sus Policies y registra el unico Gate::before del
@@ -31,6 +33,7 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
         User::class => UserPolicy::class,
         Site::class => SitePolicy::class,
         Template::class => TemplatePolicy::class,
+        Obligation::class => ObligationPolicy::class,
     ];
 
     public function boot(): void

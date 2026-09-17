@@ -42,6 +42,10 @@
                 {{ __('Dashboard') }}
             </flux:navlist.item>
 
+            <flux:navlist.item icon="clipboard-document-check" :href="route('submissions.pending')" :current="request()->routeIs('submissions.*')">
+                {{ __('Pending today') }}
+            </flux:navlist.item>
+
             <flux:navlist.item icon="building-office" :href="route('sites.index')" :current="request()->routeIs('sites.*')">
                 {{ __('Sites') }}
             </flux:navlist.item>

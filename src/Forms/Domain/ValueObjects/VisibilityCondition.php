@@ -50,6 +50,33 @@ final readonly class VisibilityCondition
     }
 
     /**
+     * Si la condicion se cumple con estas respuestas.
+     *
+     * Un campo oculto no se valida ni se guarda: marcar obligatorio «monto del
+     * faltante» solo tiene sentido si antes se contesto que hubo faltante.
+     *
+     * @param  array<string, mixed>  $answers
+     */
+    public function isSatisfiedBy(array $answers): bool
+    {
+        $actual = $answers[$this->field] ?? null;
+        $vacio = in_array($actual, [null, '', []], true);
+
+        return match ($this->operator) {
+            ComparisonOperator::IsEmpty => $vacio,
+            ComparisonOperator::IsNotEmpty => ! $vacio,
+            // Comparacion laxa a proposito: del formulario llega «1» y la
+            // condicion puede decir 1 o true.
+            ComparisonOperator::Equals => ! $vacio && $this->sameValue($actual, $this->value),
+            ComparisonOperator::NotEquals => $vacio || ! $this->sameValue($actual, $this->value),
+            ComparisonOperator::In => ! $vacio && is_array($this->value)
+                && array_filter($this->value, fn (mixed $v): bool => $this->sameValue($actual, $v)) !== [],
+            ComparisonOperator::GreaterThan => is_numeric($actual) && is_numeric($this->value) && (float) $actual > (float) $this->value,
+            ComparisonOperator::LessThan => is_numeric($actual) && is_numeric($this->value) && (float) $actual < (float) $this->value,
+        };
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -59,5 +86,18 @@ final readonly class VisibilityCondition
             'operator' => $this->operator->value,
             'value' => $this->value,
         ];
+    }
+
+    private function sameValue(mixed $actual, mixed $esperado): bool
+    {
+        if (is_bool($esperado)) {
+            return filter_var($actual, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE) === $esperado;
+        }
+
+        if (is_numeric($actual) && is_numeric($esperado)) {
+            return (float) $actual === (float) $esperado;
+        }
+
+        return (string) (is_scalar($actual) ? $actual : '') === (string) (is_scalar($esperado) ? $esperado : '');
     }
 }

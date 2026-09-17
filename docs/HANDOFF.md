@@ -1,7 +1,7 @@
 # Dónde nos quedamos — 16 de septiembre de 2026
 
-Estado del proyecto: **fase 0 cerrada; fase 1 con los tres primeros eslabones
-del motor en pie**.
+Estado del proyecto: **fase 0 cerrada; fase 1 con los cuatro primeros
+eslabones del motor en pie**.
 El plan completo está en `../../RONDA-PLAN-MAESTRO.md`, documento interno que
 no forma parte de este repositorio (el repositorio es público).
 
@@ -9,12 +9,12 @@ no forma parte de este repositorio (el repositorio es público).
 
 ## Resumen en una línea
 
-Se diseñan plantillas, se programan, y el motor materializa las obligaciones y
-marca las incumplidas cada hora. Lo que falta es que una sede **entregue**: el
-módulo `Submissions`.
+Se diseñan plantillas, se programan, el motor materializa las obligaciones, y
+el encargado ve su lista de pendientes de hoy y entrega el reporte, que cumple la
+obligación. Lo que falta es **revisar** lo entregado y **medir**.
 
 ```
-PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO → FLUJO → KPI
+PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO → KPI
 ```
 
 ---
@@ -32,6 +32,7 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/usuarios/{id}/sedes` |
 | `Forms` | Plantillas versionadas, diseñador visual, publicación | `/plantillas` |
 | `Scheduling` | Programaciones RRULE, feriados, materialización de obligaciones | — (sin pantalla aún) |
+| `Submissions` | Entrega de reportes, validación contra la versión, réplica reportable | `/pendientes` |
 | `Insights` | Panel de aterrizaje | `/panel` |
 
 ---
@@ -70,6 +71,38 @@ dejaba huérfanas; ahora autoriza antes de tocar nada.
   reescribiría el cumplimiento de una semana ya reportada. `missed → excused` sí.
 - Comando `obligations:materialize`, un job por tenant, programado cada hora.
 
+### `Submissions` — la entrega (ADR 0012)
+
+- `SubmitReport` escribe **tres tablas en una transacción**: el envío con la
+  respuesta completa, la copia tipada de lo reportable y la obligación, que pasa
+  a `fulfilled`. Hay un test que manda respuestas inválidas y comprueba que no
+  queda ni envío, ni valores, ni obligación cumplida.
+- El envío guarda **la versión con la que se respondió**.
+- Importes y números se guardan como **texto decimal, nunca float**, y se
+  rechaza la notación científica en vez de perder precisión.
+- `value_numeric` es `numeric(18,4)` y no `(14,2)`: recibe importes pero también
+  puntajes, y `(14,2)` redondearía un 4,375.
+- Un campo oculto por su condición ni se exige ni se guarda; lo que no pertenece
+  al formulario se descarta.
+- La entrega se rechaza **pasado el cierre por la hora**, no solo por el estado:
+  entre el cierre y la siguiente pasada del job la obligación sigue `pending`.
+- Doble barrera contra cumplir dos veces: bloqueo de fila en la Action y
+  restricción única en `submissions.obligation_id`.
+- **Frontera por sede en la entrega:** `ObligationPolicy` exige el permiso y
+  alcanzar la sede, reutilizando `SitePolicy`. Sin eso, cambiar un id en la URL
+  cumpliría la entrega de otro local.
+- Flujo del §9.4 declarado entero en la máquina de estados; hoy solo se usa la
+  entrada en `submitted`. Las transiciones de revisión llegan con `Workflow`.
+
+**Límites conocidos de la entrega:**
+
+- **Foto, archivo, firma y tabla de filas no se pueden completar** hasta el
+  módulo `Evidence`. Si un formulario tiene uno obligatorio y visible, el envío
+  se rechaza con un mensaje que lo dice — mejor que aceptar un arqueo sin la
+  foto exigida.
+- **Los campos calculados no se calculan**: no hay motor de fórmulas.
+- Sin borrador en servidor: el plan (§13.3) lo pone en el dispositivo.
+
 ---
 
 ## 🔴 Antes de producción: verificar los feriados
@@ -103,18 +136,15 @@ cada sede.
 
 ## Lo que queda del plan, en orden
 
-1. **`Submissions`** — la entrega: responder una plantilla contra una
-   obligación, guardar `data` JSONB, replicar lo reportable en
-   `submission_values` dentro de la misma transacción (ADR 0012), y pasar la
-   obligación a `fulfilled`. Es el siguiente eslabón y el que hace útil todo lo
-   anterior.
-2. **Pantalla de programaciones** y **lista de pendientes de hoy** del
-   encargado (§9.3: «cambia la adopción»).
-3. **`Evidence`** — fotos con SHA-256, geoetiqueta y URL firmada (ADR 0009).
-4. **`Workflow`** — revisión y aprobación con máquina de estados (§9.4).
-5. **`Notifications`** — recordatorios y escalamiento.
-6. **`Insights`** — KPI de cumplimiento: `fulfilled / (fulfilled + missed)`.
-7. **`Api`**, Sentry/Pulse, provisión asíncrona con progreso.
+1. **Pantalla de programaciones.** El motor funciona pero hoy solo se programa
+   por código; sin esto un cliente no puede ponerlo en marcha.
+2. **`Evidence`** — fotos con SHA-256, geoetiqueta y URL firmada (ADR 0009).
+   Desbloquea los campos de foto, archivo y firma.
+3. **`Workflow`** — revisión y aprobación (§9.4). La máquina de estados ya
+   está declarada; faltan las Actions y la bandeja del supervisor.
+4. **`Notifications`** — recordatorios y escalamiento.
+5. **`Insights`** — KPI de cumplimiento: `fulfilled / (fulfilled + missed)`.
+6. **`Api`**, Sentry/Pulse, provisión asíncrona con progreso.
 
 ---
 

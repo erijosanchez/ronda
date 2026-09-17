@@ -138,5 +138,19 @@
     "Publish new version": "Publicar versión nueva",
     "Template published.": "Plantilla publicada.",
     "Description": "Descripción",
-    "A field key uses lowercase letters, digits and underscores, and starts with a letter.": "La clave de un campo usa minúsculas, dígitos y guiones bajos, y empieza por letra."
+    "A field key uses lowercase letters, digits and underscores, and starts with a letter.": "La clave de un campo usa minúsculas, dígitos y guiones bajos, y empieza por letra.",
+    "What your sites have to report, sorted by deadline.": "Lo que tus sedes tienen que reportar, por orden de vencimiento.",
+    "Nothing pending": "Nada pendiente",
+    "There is no report to submit right now for your sites.": "Ahora mismo no hay ningún reporte que entregar en tus sedes.",
+    "Report": "Reporte",
+    "Deadline": "Vence",
+    "Late": "Con retraso",
+    "Opens :time": "Abre a las :time",
+    "Fill in": "Rellenar",
+    "Submit report": "Enviar reporte",
+    "Report submitted.": "Reporte enviado.",
+    "Yes": "Sí",
+    "No": "No",
+    "Choose one": "Elige una",
+    "This field cannot be filled in yet.": "Este campo todavía no se puede completar."
 }
