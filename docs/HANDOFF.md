@@ -1,7 +1,7 @@
 # Dónde nos quedamos — 16 de septiembre de 2026
 
 Estado del proyecto: **fase 0 cerrada; fase 1 con los cuatro primeros
-eslabones del motor en pie**.
+eslabones del motor en pie y ya operables desde la interfaz**.
 El plan completo está en `../../RONDA-PLAN-MAESTRO.md`, documento interno que
 no forma parte de este repositorio (el repositorio es público).
 
@@ -9,9 +9,9 @@ no forma parte de este repositorio (el repositorio es público).
 
 ## Resumen en una línea
 
-Se diseñan plantillas, se programan, el motor materializa las obligaciones, y
-el encargado ve su lista de pendientes de hoy y entrega el reporte, que cumple la
-obligación. Lo que falta es **revisar** lo entregado y **medir**.
+Se diseñan plantillas, se programan **desde la pantalla**, el motor materializa
+las obligaciones, y el encargado ve su lista de pendientes de hoy y entrega el
+reporte, que cumple la obligación. Lo que falta es **revisar** lo entregado y **medir**.
 
 ```
 PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO → KPI
@@ -22,7 +22,7 @@ PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO
 ## Lo que funciona, verificado ejecutándolo
 
 Todo junto: `docker compose exec app composer check` (pint + phpstan + rector +
-deptrac + pest). La suite tarda **~5 minutos**: la suite `Integration`
+deptrac + pest). La suite tarda **~6 minutos** (por eso `composer.json` fija `process-timeout: 0`; con el límite de 300 s de Composer, `check` se cortaba): la suite `Integration`
 provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 
 | Módulo | Qué hace | Pantallas |
@@ -31,13 +31,44 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Identity` | Usuarios, roles, permisos, 2FA, invariantes del propietario | `/usuarios` |
 | `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/usuarios/{id}/sedes` |
 | `Forms` | Plantillas versionadas, diseñador visual, publicación | `/plantillas` |
-| `Scheduling` | Programaciones RRULE, feriados, materialización de obligaciones | — (sin pantalla aún) |
+| `Scheduling` | Programaciones RRULE, feriados, materialización y replanificación de obligaciones | `/programaciones` |
 | `Submissions` | Entrega de reportes, validación contra la versión, réplica reportable | `/pendientes` |
 | `Insights` | Panel de aterrizaje | `/panel` |
 
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### `Scheduling` — pantalla de programaciones
+
+- **Nadie escribe RRULE a mano.** `RecurrencePattern` traduce diaria / semanal
+  (con días) / mensual (día fijo o último día) con intervalo a la regla, y de
+  vuelta al abrir para editar. Lo que no reconoce (BYSETPOS, COUNT, «primer
+  lunes») lo deja como **regla personalizada, sin reinterpretarla**: reescribir
+  una regla que no se entiende del todo cambiaría las fechas en silencio.
+- El formulario muestra las **próximas fechas** mientras se edita (sin descontar
+  feriados; lo avisa).
+- **Replanificación (`ReplanObligations`).** Las obligaciones siguen siendo una
+  foto para lo que ya es historia: lo cumplido, incumplido, excusado y lo que
+  **ya abrió** no se toca. Lo `pending` que **todavía no abrió** es un plan: al
+  editar, pausar o reanudar se descarta y se vuelve a materializar sobre el
+  horizonte del job. Sin esto, pausar seguía pidiendo dos semanas de entregas.
+- **Nada nace vencido.** Crear o cambiar una programación a media tarde no crea
+  la ocurrencia cuyo cierre ya pasó (`MaterializeObligations` acepta
+  `notClosedBefore`). El job horario no lo usa (ver puntos abiertos).
+- `LaunchSchedule` = crear + materializar en el acto, en una transacción: quien
+  programa el arqueo de hoy lo ve en pendientes sin esperar al job.
+  `CreateSchedule` sigue siendo la pieza base (solo escribe).
+- **La plantilla de una programación no cambia**: su historial de cumplimiento
+  es de esa plantilla. Para pedir otra, otra programación.
+- Validación compartida en `ValidateSchedule` (crear y editar no pueden
+  divergir).
+- **Frontera por sede:** con alcance «lista de sedes», solo se aceptan sedes que
+  el usuario alcanza (`AssignedSitesScope`); un id ajeno da error de formulario.
+- `SchedulePolicy`: ver con `schedule.view`; crear, editar, pausar y reanudar con
+  `schedule.manage`.
+- Faltaban `lang/*/schedule-scope.php` (el enum ya los usaba): añadidos, junto
+  a `recurrence-frequency` y `weekdays`.
 
 ### `Forms` — plantillas versionadas (ADR 0012)
 
@@ -123,8 +154,13 @@ cada sede.
 
 - **Zonas y cargos no tienen pantalla.** El formulario de sede ofrece zonas pero
   no se pueden crear desde la interfaz.
-- **Programaciones sin pantalla.** El dominio y el motor están completos; falta
-  la interfaz para crearlas. Hoy solo por código.
+- **El job horario puede crear obligaciones ya cerradas** para una sede dada
+  de alta a media tarde (el día en curso), que en la pasada siguiente quedan
+  `missed`. La pantalla ya lo evita con `notClosedBefore`; aplicarlo también al
+  job cambia el contrato de `ObligationMaterializationTest` (materializa rangos
+  pasados a propósito), así que se dejó para decidirlo aparte.
+- **Una programación cuya plantilla se archive no se puede editar** (la
+  validación exige plantilla publicada); sí se puede pausar.
 - **`last_login_at` nadie la escribe.** Falta un listener del evento `Login`.
 - **DTOs vs spatie/laravel-data.** PHP no deja que una clase `readonly` extienda
   `Data`, y la regla de arquitectura exige DTOs readonly. Decidir antes de atar
@@ -136,8 +172,7 @@ cada sede.
 
 ## Lo que queda del plan, en orden
 
-1. **Pantalla de programaciones.** El motor funciona pero hoy solo se programa
-   por código; sin esto un cliente no puede ponerlo en marcha.
+1. ~~Pantalla de programaciones.~~ Hecha.
 2. **`Evidence`** — fotos con SHA-256, geoetiqueta y URL firmada (ADR 0009).
    Desbloquea los campos de foto, archivo y firma.
 3. **`Workflow`** — revisión y aprobación (§9.4). La máquina de estados ya

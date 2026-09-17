@@ -30,4 +30,17 @@ final class InvalidSchedule extends DomainException
     {
         return new self('La programacion termina antes de empezar.');
     }
+
+    public static function negativeTolerance(): self
+    {
+        return new self('La tolerancia no puede ser negativa.');
+    }
+
+    public static function templateChanged(): self
+    {
+        return new self(
+            'Una programacion no cambia de plantilla: su historial de cumplimiento es de la plantilla original. '
+            .'Para pedir otra plantilla, crea otra programacion.',
+        );
+    }
 }

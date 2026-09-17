@@ -13,7 +13,9 @@ use Ronda\Forms\Domain\Models\Template;
 use Ronda\Identity\Application\Policies\OwnerGate;
 use Ronda\Identity\Application\Policies\UserPolicy;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Scheduling\Application\Policies\SchedulePolicy;
 use Ronda\Scheduling\Domain\Models\Obligation;
+use Ronda\Scheduling\Domain\Models\Schedule;
 use Ronda\Submissions\Application\Policies\ObligationPolicy;
 
 /**
@@ -33,6 +35,7 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
         User::class => UserPolicy::class,
         Site::class => SitePolicy::class,
         Template::class => TemplatePolicy::class,
+        Schedule::class => SchedulePolicy::class,
         Obligation::class => ObligationPolicy::class,
     ];
 

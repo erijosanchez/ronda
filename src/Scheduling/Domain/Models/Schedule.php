@@ -15,6 +15,7 @@ use Ronda\Directory\Domain\Models\Zone;
 use Ronda\Forms\Domain\Models\Template;
 use Ronda\Scheduling\Domain\ScheduleScope;
 use Ronda\Scheduling\Domain\ValueObjects\Recurrence;
+use Ronda\Scheduling\Domain\ValueObjects\RecurrencePattern;
 use Ronda\Scheduling\Domain\ValueObjects\TimeWindow;
 
 /**
@@ -82,6 +83,14 @@ final class Schedule extends Model
     public function recurrence(): Recurrence
     {
         return Recurrence::fromString($this->rrule);
+    }
+
+    /**
+     * La regla como la cuenta una persona, para mostrarla y editarla.
+     */
+    public function recurrencePattern(): RecurrencePattern
+    {
+        return RecurrencePattern::fromRecurrence($this->recurrence());
     }
 
     public function window(): TimeWindow
