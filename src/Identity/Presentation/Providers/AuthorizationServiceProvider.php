@@ -8,6 +8,8 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Ronda\Directory\Application\Policies\SitePolicy;
 use Ronda\Directory\Domain\Models\Site;
+use Ronda\Evidence\Application\Policies\AttachmentPolicy;
+use Ronda\Evidence\Domain\Models\Attachment;
 use Ronda\Forms\Application\Policies\TemplatePolicy;
 use Ronda\Forms\Domain\Models\Template;
 use Ronda\Identity\Application\Policies\OwnerGate;
@@ -17,6 +19,8 @@ use Ronda\Scheduling\Application\Policies\SchedulePolicy;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Scheduling\Domain\Models\Schedule;
 use Ronda\Submissions\Application\Policies\ObligationPolicy;
+use Ronda\Submissions\Application\Policies\SubmissionPolicy;
+use Ronda\Submissions\Domain\Models\Submission;
 
 /**
  * Enlaza modelos con sus Policies y registra el unico Gate::before del
@@ -37,6 +41,8 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
         Template::class => TemplatePolicy::class,
         Schedule::class => SchedulePolicy::class,
         Obligation::class => ObligationPolicy::class,
+        Submission::class => SubmissionPolicy::class,
+        Attachment::class => AttachmentPolicy::class,
     ];
 
     public function boot(): void

@@ -10,6 +10,11 @@
         </flux:callout>
     @enderror
 
+    {{-- Pide la ubicacion del dispositivo una vez y la deja en `latitude` y
+         `longitude`. Si se niega, se entrega igual: la revision vera que no
+         hay ubicacion. --}}
+    <div x-data="deviceLocation" class="hidden" aria-hidden="true"></div>
+
     <form wire:submit="submit" class="space-y-6">
         @foreach ($fields as $field)
             @php
@@ -74,8 +79,92 @@
                         {{-- Sin motor de formulas todavia: se muestra, no se calcula. --}}
                         @break
 
+                    @case (\Ronda\Forms\Domain\ValueObjects\FieldType::Photo)
+                    @case (\Ronda\Forms\Domain\ValueObjects\FieldType::File)
+                        @php $esFoto = $tipo === \Ronda\Forms\Domain\ValueObjects\FieldType::Photo; @endphp
+
+                        <flux:field>
+                            <flux:label>
+                                {{ $field->label }}
+                                @if ($field->required) <span class="text-red-600">*</span> @endif
+                            </flux:label>
+
+                            @if ($field->help)
+                                <flux:description>{{ $field->help }}</flux:description>
+                            @endif
+
+                            {{-- `capture` abre la camara trasera en el movil: una
+                                 foto de evidencia se toma en el momento, no se
+                                 elige de la galeria. --}}
+                            <input
+                                type="file"
+                                multiple
+                                wire:model="uploads.{{ $field->key }}"
+                                @if ($esFoto) accept="image/jpeg,image/png,image/webp" capture="environment" @else accept="image/jpeg,image/png,image/webp,application/pdf,.xlsx,.docx" @endif
+                                class="block w-full text-sm text-zinc-600 file:me-3 file:rounded-md file:border-0 file:bg-zinc-100 file:px-3 file:py-2 file:text-sm file:font-medium dark:text-zinc-300 dark:file:bg-zinc-700"
+                            />
+
+                            <div wire:loading wire:target="uploads.{{ $field->key }}">
+                                <flux:text class="text-xs">{{ __('Uploading...') }}</flux:text>
+                            </div>
+
+                            @if (! empty($uploads[$field->key]))
+                                <ul class="mt-2 flex flex-wrap gap-3">
+                                    @foreach ($uploads[$field->key] as $indice => $archivo)
+                                        <li wire:key="subida-{{ $field->key }}-{{ $indice }}" class="flex items-center gap-2 rounded-md border border-zinc-200 p-2 dark:border-zinc-700">
+                                            @if ($esFoto && method_exists($archivo, 'isPreviewable') && $archivo->isPreviewable())
+                                                <img src="{{ $archivo->temporaryUrl() }}" alt="" class="size-14 rounded object-cover" />
+                                            @else
+                                                <flux:icon.document class="size-6 text-zinc-400" />
+                                            @endif
+
+                                            <flux:text class="max-w-40 truncate text-xs">{{ $archivo->getClientOriginalName() }}</flux:text>
+
+                                            <flux:button
+                                                size="xs" variant="ghost" icon="x-mark"
+                                                wire:click="removeUpload('{{ $field->key }}', {{ $indice }})"
+                                                :aria-label="__('Remove file')"
+                                            />
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            @endif
+
+                            @error('uploads.'.$field->key.'.*')
+                                <flux:text class="mt-1 text-red-600">{{ $message }}</flux:text>
+                            @enderror
+                        </flux:field>
+                        @break
+
+                    @case (\Ronda\Forms\Domain\ValueObjects\FieldType::Signature)
+                        <flux:field>
+                            <flux:label>
+                                {{ $field->label }}
+                                @if ($field->required) <span class="text-red-600">*</span> @endif
+                            </flux:label>
+
+                            @if ($field->help)
+                                <flux:description>{{ $field->help }}</flux:description>
+                            @endif
+
+                            {{-- wire:ignore: Livewire no debe redibujar el canvas
+                                 mientras se firma. El componente escribe la firma
+                                 en `signatures.<clave>` al levantar el trazo. --}}
+                            <div wire:ignore x-data="signaturePad('signatures.{{ $field->key }}')" class="space-y-2">
+                                <canvas
+                                    x-ref="canvas"
+                                    class="h-40 w-full touch-none rounded-md border border-dashed border-zinc-300 bg-white dark:border-zinc-600"
+                                ></canvas>
+
+                                <flux:button size="sm" variant="ghost" icon="arrow-path" x-on:click="clear()">
+                                    {{ __('Clear signature') }}
+                                </flux:button>
+                            </div>
+                        </flux:field>
+                        @break
+
                     @default
-                        {{-- Foto, archivo, firma y tabla llegan con el modulo Evidence. --}}
+                        {{-- La tabla de filas necesita un editor propio. --}}
                         <flux:callout icon="clock" variant="secondary">
                             <flux:callout.heading>{{ $field->label }}</flux:callout.heading>
                             <flux:callout.text>{{ __('This field cannot be filled in yet.') }}</flux:callout.text>

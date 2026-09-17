@@ -49,6 +49,28 @@ return [
             'report' => false,
         ],
 
+        /*
+         | Evidencia (ADR 0009). Siempre privada: S3 compatible (MinIO en local,
+         | Cloudflare R2 en produccion) sin URL publica. Nunca se sirve directo
+         | del bucket; la app la entrega por una ruta firmada que evalua la
+         | Policy en cada acceso.
+         |
+         | `throw` activo: una subida que falla en silencio es un reporte que
+         | dice tener foto y no la tiene.
+         */
+        'evidence' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION'),
+            'bucket' => env('AWS_BUCKET'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'visibility' => 'private',
+            'throw' => true,
+            'report' => true,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),

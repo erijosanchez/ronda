@@ -6,8 +6,15 @@ namespace Ronda\Submissions\Application\Actions;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Database\ConnectionInterface;
+use Ronda\Evidence\Application\Actions\DiscardEvidence;
+use Ronda\Evidence\Application\Actions\StoreEvidence;
+use Ronda\Evidence\Application\Data\EvidenceUpload;
+use Ronda\Evidence\Domain\EvidenceKind;
+use Ronda\Evidence\Domain\Exceptions\InvalidEvidence;
 use Ronda\Forms\Domain\Models\Template;
 use Ronda\Forms\Domain\Models\TemplateVersion;
+use Ronda\Forms\Domain\ValueObjects\Field;
+use Ronda\Forms\Domain\ValueObjects\FormSchema;
 use Ronda\Identity\Domain\Models\User;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Scheduling\Domain\States\Fulfilled;
@@ -18,6 +25,7 @@ use Ronda\Submissions\Domain\Models\Submission;
 use Ronda\Submissions\Domain\Services\AnswerValidator;
 use Ronda\Submissions\Domain\Services\ReportableValues;
 use Ronda\Submissions\Domain\States\Submitted;
+use Throwable;
 
 /**
  * Entrega un reporte contra una obligacion. RONDA-PLAN-MAESTRO.md sec. 9.1,
@@ -37,6 +45,11 @@ use Ronda\Submissions\Domain\States\Submitted;
  * Un envio sin obligacion cumplida deja el KPI con un incumplimiento que no lo
  * era; una obligacion cumplida sin envio, con un cumplimiento sin nada detras.
  *
+ * La evidencia (fotos, archivos, firma) se guarda DENTRO de la misma
+ * transaccion: cada archivo es una fila de `attachments` que se deshace con el
+ * resto. El objeto en el bucket no se deshace solo; si algo falla despues de
+ * subirlo, se borra con DiscardEvidence antes de propagar el error.
+ *
  * La autorizacion NO vive aqui: la decide ObligationPolicy antes de invocar.
  */
 final readonly class SubmitReport
@@ -45,64 +58,167 @@ final readonly class SubmitReport
         private ConnectionInterface $connection,
         private AnswerValidator $validator,
         private ReportableValues $reportable,
+        private StoreEvidence $storeEvidence,
+        private DiscardEvidence $discardEvidence,
     ) {}
 
     /**
      * @param  array<string, mixed>  $answers
+     * @param  array<string, list<EvidenceUpload>>  $evidence  archivos por clave de campo
      *
      * @throws CannotSubmit
      * @throws InvalidAnswers
+     * @throws InvalidEvidence
      */
-    public function __invoke(Obligation $obligation, User $author, array $answers, ?CarbonImmutable $now = null): Submission
-    {
+    public function __invoke(
+        Obligation $obligation,
+        User $author,
+        array $answers,
+        ?CarbonImmutable $now = null,
+        array $evidence = [],
+    ): Submission {
         $now ??= CarbonImmutable::now('UTC');
 
-        return $this->connection->transaction(function () use ($obligation, $author, $answers, $now): Submission {
-            // Se relee con bloqueo. Dos pestanas enviando a la vez leerian las
-            // dos `pending` sin el; con el, la segunda espera y ve `fulfilled`.
-            // La restriccion unica de `submissions.obligation_id` es la ultima
-            // barrera si algo se salta esto.
-            /** @var Obligation $obligation */
-            $obligation = Obligation::query()->lockForUpdate()->findOrFail($obligation->getKey());
+        /** @var list<string> $escritas rutas ya subidas al bucket */
+        $escritas = [];
 
-            $this->guardWindow($obligation, $now);
+        try {
+            // Closure con `&` y no arrow function: una arrow function captura por
+            // valor, y la limpieza de abajo veria la lista vacia.
+            return $this->connection->transaction(
+                function () use ($obligation, $author, $answers, $now, $evidence, &$escritas): Submission {
+                    return $this->submit($obligation, $author, $answers, $now, $evidence, $escritas);
+                },
+            );
+        } catch (Throwable $e) {
+            ($this->discardEvidence)($escritas);
 
-            $version = $this->currentVersion($obligation->template_id);
-            $schema = $version->formSchema();
+            throw $e;
+        }
+    }
 
-            // Primero se valida: si las respuestas no se sostienen, no se
-            // escribe nada y la transaccion se deshace entera.
-            $limpias = $this->validator->validate($schema, $answers);
+    /**
+     * @param  array<string, mixed>  $answers
+     * @param  array<string, list<EvidenceUpload>>  $evidence
+     * @param  list<string>  $escritas
+     */
+    private function submit(
+        Obligation $obligation,
+        User $author,
+        array $answers,
+        CarbonImmutable $now,
+        array $evidence,
+        array &$escritas,
+    ): Submission {
+        // Se relee con bloqueo. Dos pestanas enviando a la vez leerian las
+        // dos `pending` sin el; con el, la segunda espera y ve `fulfilled`.
+        // La restriccion unica de `submissions.obligation_id` es la ultima
+        // barrera si algo se salta esto.
+        /** @var Obligation $obligation */
+        $obligation = Obligation::query()->lockForUpdate()->findOrFail($obligation->getKey());
 
-            $tarde = $now->greaterThan($obligation->due_at);
+        $this->guardWindow($obligation, $now);
 
-            $submission = Submission::create([
-                'template_id' => $obligation->template_id,
-                'template_version_id' => $version->getKey(),
-                'site_id' => $obligation->site_id,
-                'obligation_id' => $obligation->getKey(),
-                'author_id' => $author->getKey(),
-                'state' => Submitted::$name,
-                'data' => $limpias,
-                'submitted_at' => $now,
-                'is_late' => $tarde,
-                'minutes_late' => $tarde ? (int) floor($obligation->due_at->diffInMinutes($now, true)) : 0,
-            ]);
+        $version = $this->currentVersion($obligation->template_id);
+        $schema = $version->formSchema();
 
-            $filas = $this->reportable->extract($schema, $limpias);
+        // Primero se valida: si las respuestas no se sostienen, no se
+        // escribe nada y la transaccion se deshace entera.
+        $limpias = $this->validator->validate(
+            $schema,
+            $answers,
+            array_map(count(...), $evidence),
+        );
 
-            if ($filas !== []) {
-                $submission->values()->createMany($filas);
+        $tarde = $now->greaterThan($obligation->due_at);
+
+        $submission = Submission::create([
+            'template_id' => $obligation->template_id,
+            'template_version_id' => $version->getKey(),
+            'site_id' => $obligation->site_id,
+            'obligation_id' => $obligation->getKey(),
+            'author_id' => $author->getKey(),
+            'state' => Submitted::$name,
+            'data' => $limpias,
+            'submitted_at' => $now,
+            'is_late' => $tarde,
+            'minutes_late' => $tarde ? (int) floor($obligation->due_at->diffInMinutes($now, true)) : 0,
+        ]);
+
+        $limpias = $this->storeEvidence($submission, $schema, $limpias, $evidence, $author, $escritas);
+
+        $filas = $this->reportable->extract($schema, $limpias);
+
+        if ($filas !== []) {
+            $submission->values()->createMany($filas);
+        }
+
+        $obligation->status->transitionTo(Fulfilled::class);
+        $obligation->forceFill([
+            'submission_id' => $submission->getKey(),
+            'fulfilled_at' => $now,
+        ])->save();
+
+        return $submission;
+    }
+
+    /**
+     * Guarda la evidencia de los campos que el validador acepto y pone en
+     * `data` los ids de sus archivos. Lo que llego para un campo inexistente,
+     * oculto o de otro tipo no se guarda.
+     *
+     * @param  array<string, string|bool|list<string>>  $limpias
+     * @param  array<string, list<EvidenceUpload>>  $evidence
+     * @param  list<string>  $escritas
+     * @return array<string, string|bool|list<string>>
+     */
+    private function storeEvidence(
+        Submission $submission,
+        FormSchema $schema,
+        array $limpias,
+        array $evidence,
+        User $author,
+        array &$escritas,
+    ): array {
+        $hubo = false;
+
+        foreach ($evidence as $clave => $archivos) {
+            $field = $schema->field($clave);
+
+            if (! $field instanceof Field || ! array_key_exists($clave, $limpias)) {
+                continue;
             }
 
-            $obligation->status->transitionTo(Fulfilled::class);
-            $obligation->forceFill([
-                'submission_id' => $submission->getKey(),
-                'fulfilled_at' => $now,
-            ])->save();
+            $clase = EvidenceKind::forFieldType($field->type);
 
-            return $submission;
-        });
+            if (! $clase instanceof EvidenceKind) {
+                continue;
+            }
+
+            $ids = [];
+
+            foreach ($archivos as $archivo) {
+                try {
+                    $adjunto = ($this->storeEvidence)($submission, $clave, $clase, $archivo, $author);
+                } catch (InvalidEvidence $e) {
+                    // Con la clave del campo, para que la pantalla lo muestre
+                    // donde corresponde.
+                    throw new InvalidAnswers([$clave => "«{$field->label}»: {$e->getMessage()}"]);
+                }
+
+                $escritas[] = $adjunto->path;
+                $ids[] = (string) $adjunto->getKey();
+            }
+
+            $limpias[$clave] = $ids;
+            $hubo = true;
+        }
+
+        if ($hubo) {
+            $submission->forceFill(['data' => $limpias])->save();
+        }
+
+        return $limpias;
     }
 
     private function guardWindow(Obligation $obligation, CarbonImmutable $now): void

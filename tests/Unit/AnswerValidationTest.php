@@ -114,7 +114,7 @@ it('rechaza fechas imposibles', function (): void {
     expect(erroresDe(arqueo(), ['monto' => '1', 'fecha_deposito' => '2026-02-30']))->toHaveKey('fecha_deposito');
 });
 
-it('bloquea el envio si falta una foto obligatoria que aun no se puede subir', function (): void {
+it('bloquea el envio si falta una foto obligatoria', function (): void {
     // Aceptar un arqueo sin la foto que el cliente exigio es peor que no dejar
     // enviarlo.
     $schema = FormSchema::fromArray([
@@ -124,13 +124,55 @@ it('bloquea el envio si falta una foto obligatoria que aun no se puede subir', f
     expect(erroresDe($schema, []))->toHaveKey('foto_caja');
 });
 
-it('ignora una foto opcional que aun no se puede subir', function (): void {
+it('ignora una foto opcional que no llego', function (): void {
     $schema = FormSchema::fromArray([
         ['key' => 'notas', 'type' => 'text', 'label' => 'Notas'],
         ['key' => 'foto', 'type' => 'photo', 'label' => 'Foto'],
     ]);
 
     expect(erroresDe($schema, ['notas' => 'ok']))->toBe([]);
+});
+
+it('acepta la evidencia que llega y deja el campo listo para sus archivos', function (): void {
+    $schema = FormSchema::fromArray([
+        ['key' => 'foto_caja', 'type' => 'photo', 'label' => 'Foto de la caja', 'required' => true],
+        ['key' => 'firma', 'type' => 'signature', 'label' => 'Firma', 'required' => true],
+    ]);
+
+    $limpias = (new AnswerValidator)->validate($schema, [], ['foto_caja' => 2, 'firma' => 1]);
+
+    // El marcador vacio lo sustituye SubmitReport por los ids guardados.
+    expect($limpias)->toBe(['foto_caja' => [], 'firma' => []]);
+});
+
+it('no admite mas archivos de los que permite el campo', function (): void {
+    $schema = FormSchema::fromArray([
+        ['key' => 'firma', 'type' => 'signature', 'label' => 'Firma'],
+        ['key' => 'fotos', 'type' => 'photo', 'label' => 'Fotos'],
+    ]);
+
+    expect(fn (): array => (new AnswerValidator)->validate($schema, [], ['firma' => 2, 'fotos' => 6]))
+        ->toThrow(function (InvalidAnswers $e): void {
+            expect($e->errors)->toHaveKeys(['firma', 'fotos']);
+        });
+});
+
+it('no se cree una foto escrita como respuesta en lugar de subida', function (): void {
+    // Una foto es un archivo validado por Evidence. Un texto en `answers` con
+    // la clave del campo no puede hacerse pasar por ella.
+    $schema = FormSchema::fromArray([
+        ['key' => 'foto', 'type' => 'photo', 'label' => 'Foto', 'required' => true],
+    ]);
+
+    expect(erroresDe($schema, ['foto' => ['12', '13']]))->toHaveKey('foto');
+});
+
+it('sigue bloqueando una tabla obligatoria, que aun no se puede completar', function (): void {
+    $schema = FormSchema::fromArray([
+        ['key' => 'detalle', 'type' => 'table', 'label' => 'Detalle', 'required' => true],
+    ]);
+
+    expect(erroresDe($schema, []))->toHaveKey('detalle');
 });
 
 it('replica solo lo reportable, cada valor en su columna', function (): void {

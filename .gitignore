@@ -17,6 +17,9 @@
 /public/hot
 /public/storage
 /storage/*.key
+# Almacenamiento local por tenant (stancl/tenancy sufija storage_path): subidas
+# temporales de Livewire. La evidencia definitiva vive en el bucket, nunca aqui.
+/storage/tenant*/
 /storage/pail
 /vendor
 Homestead.json
