@@ -1,8 +1,8 @@
-# Dónde nos quedamos — 16 de septiembre de 2026
+# Dónde nos quedamos — 17 de septiembre de 2026
 
-Estado del proyecto: **fase 0 cerrada; fase 1 con los cuatro primeros
-eslabones del motor en pie y operables desde la interfaz, con evidencia
-probatoria**.
+Estado del proyecto: **fase 0 cerrada; fase 1 con los
+cinco primeros eslabones del motor en pie y operables desde la interfaz: se
+programa, se entrega con evidencia y se revisa**.
 El plan completo está en `../../RONDA-PLAN-MAESTRO.md`, documento interno que
 no forma parte de este repositorio (el repositorio es público).
 
@@ -12,10 +12,12 @@ no forma parte de este repositorio (el repositorio es público).
 
 Se diseñan plantillas, se programan **desde la pantalla**, el motor materializa
 las obligaciones, y el encargado ve su lista de pendientes de hoy y entrega el
-reporte **con fotos, archivos y firma**, que cumple la obligación. Lo que falta es **revisar** lo entregado y **medir**.
+reporte **con fotos, archivos y firma**, que cumple la obligación. El
+supervisor lo **aprueba o lo rechaza** con motivo, y la sede lo corrige. Lo que
+falta es **avisar** y **medir**.
 
 ```
-PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO → KPI
+PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO ✅ → KPI
 ```
 
 ---
@@ -23,7 +25,7 @@ PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO
 ## Lo que funciona, verificado ejecutándolo
 
 Todo junto: `docker compose exec app composer check` (pint + phpstan + rector +
-deptrac + pest). La suite tarda **~7 minutos** (por eso `composer.json` fija `process-timeout: 0`; con el límite de 300 s de Composer, `check` se cortaba): la suite `Integration`
+deptrac + pest). La suite tarda **entre 7 y 14 minutos** según la carga de la máquina (por eso `composer.json` fija `process-timeout: 0`; con el límite de 300 s de Composer, `check` se cortaba): la suite `Integration`
 provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 
 | Módulo | Qué hace | Pantallas |
@@ -34,12 +36,52 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Forms` | Plantillas versionadas, diseñador visual, publicación | `/plantillas` |
 | `Scheduling` | Programaciones RRULE, feriados, materialización y replanificación de obligaciones | `/programaciones` |
 | `Submissions` | Entrega de reportes, validación contra la versión, réplica reportable, ficha del envío | `/pendientes`, `/envios/{id}` |
+| `Workflow` | Revisión: tomar, aprobar, rechazar, corregir; historial, comentarios y revisiones anteriores | `/revision`, `/envios/{id}/corregir` |
 | `Evidence` | Fotos, archivos y firma en bucket privado; SHA-256, EXIF, distancia a la sede, URL firmada | `/evidencia/{id}` (firmada) |
 | `Insights` | Panel de aterrizaje | `/panel` |
 
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### `Workflow` — revisión y aprobación (§9.4)
+
+- **El flujo del plan, fijo en código** (`SubmissionState`): enviado → en
+  revisión → aprobado (final) o rechazado → corregir → enviado. **No hay flujos
+  configurables por plantilla** (`workflows`, `workflow_states`,
+  `workflow_transitions`): se crearán cuando haya un diseñador que los use.
+- **Tomar reserva la decisión**: mientras está en revisión solo decide quien lo
+  tomó (con bloqueo de fila). Aprobar y rechazar lo toman de paso, así que no
+  hay un clic de más, pero el historial registra las dos transiciones.
+- **Nadie revisa lo que entregó**, tampoco la propietaria: `OwnerGate` salta las
+  Policies, pero la separación de funciones la aplica la Action.
+- **Rechazar exige motivo** y se comprueba antes de tomar: un rechazo sin motivo
+  no deja el envío reservado.
+- **Aprobar es un permiso aparte** (`submission.approve`) de revisar/rechazar
+  (`submission.review`). Todo exige además alcanzar la sede.
+- **Corregir** (`CorrectSubmission`): valida contra la **versión con la que se
+  entregó**, guarda lo rechazado en `submission_revisions` con el motivo,
+  reescribe `data` y la réplica reportable juntas y vuelve a `submitted`. La
+  evidencia no reemplazada se conserva; la reemplazada sigue en `attachments`
+  (la referencia la revisión) y la ficha muestra solo la vigente.
+  `submitted_at` y el retraso no cambian.
+- **Rechazar no deshace el cumplimiento** de la obligación: se entregó, y la
+  calidad se medirá aparte.
+- **Desviación del plan:** en lugar de `reviews` hay `submission_transitions`
+  (cada cambio de estado con actor, hora y comentario, incluida la entrega).
+  Además `submission_comments` y `submission_revisions`.
+- Eventos `SubmissionTaken/Approved/Rejected/Corrected` con
+  `ShouldDispatchAfterCommit`, listos para `Notifications`; aún sin oyentes.
+- **Pantallas:** bandeja `/revision` (por estado, «solo los míos», búsqueda,
+  frontera por sede), panel en la ficha del envío (decidir, historial,
+  comentarios), `/envios/{id}/corregir` y, en pendientes, «Rechazados, por
+  corregir». Índice parcial `WHERE state = 'submitted'` (§8.5).
+- Refactor: la evidencia de las respuestas pasa por `StoreAnswerEvidence`
+  (entrega y corrección iguales); los campos del formulario son un parcial
+  (`submissions::partials.fields`) y la recogida de archivos un trait
+  (`CollectsEvidence`).
+- Sondeado quitando: no revisar lo propio, no decidir lo tomado por otro,
+  guardar la revisión anterior y el permiso de aprobar.
 
 ### `Evidence` — evidencia con valor probatorio (ADR 0009, §9.5)
 
@@ -197,6 +239,10 @@ cada sede.
 
 ## Puntos abiertos (ninguno bloquea)
 
+- **Workflow, pendiente:** SLA de revisión y escalamiento (van con
+  `Notifications`), liberar o reasignar un envío tomado (hoy nadie puede
+  quitárselo a quien lo tomó), ver en pantalla las respuestas de revisiones
+  anteriores (se guardan pero no se muestran) y flujos configurables.
 - **Evidence, pendiente del §9.5/§10.4:** marca de agua opcional, antivirus
   (ClamAV) con cuarentena, geoetiqueta *obligatoria* por campo (el diseñador no
   tiene la opción), cuota por plan, retención/purga y registro en
@@ -227,8 +273,7 @@ cada sede.
 
 1. ~~Pantalla de programaciones.~~ Hecha.
 2. ~~`Evidence`.~~ Hecho (con los pendientes de arriba).
-3. **`Workflow`** — revisión y aprobación (§9.4). La máquina de estados ya
-   está declarada; faltan las Actions y la bandeja del supervisor.
+3. ~~`Workflow`.~~ Hecho (con los pendientes de arriba).
 4. **`Notifications`** — recordatorios y escalamiento.
 5. **`Insights`** — KPI de cumplimiento: `fulfilled / (fulfilled + missed)`.
 6. **`Api`**, Sentry/Pulse, provisión asíncrona con progreso.

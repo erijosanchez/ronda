@@ -13,6 +13,7 @@ use Ronda\Identity\Presentation\Providers\IdentityServiceProvider;
 use Ronda\Insights\Presentation\Providers\InsightsServiceProvider;
 use Ronda\Scheduling\Presentation\Providers\SchedulingServiceProvider;
 use Ronda\Submissions\Presentation\Providers\SubmissionsServiceProvider;
+use Ronda\Workflow\Presentation\Providers\WorkflowServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -26,4 +27,5 @@ return [
     SchedulingServiceProvider::class,
     SubmissionsServiceProvider::class,
     EvidenceServiceProvider::class,
+    WorkflowServiceProvider::class,
 ];

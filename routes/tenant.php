@@ -63,6 +63,7 @@ Route::middleware([
         require __DIR__.'/../src/Scheduling/Presentation/routes.php';
         require __DIR__.'/../src/Submissions/Presentation/routes.php';
         require __DIR__.'/../src/Evidence/Presentation/routes.php';
+        require __DIR__.'/../src/Workflow/Presentation/routes.php';
     });
 
 });

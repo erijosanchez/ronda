@@ -28,6 +28,15 @@
                 <flux:badge color="green" size="sm">{{ __('On time') }}</flux:badge>
             @endif
 
+            <flux:badge size="sm" :color="match ($submission->state->getValue()) {
+                'approved' => 'green',
+                'rejected' => 'red',
+                'under_review' => 'blue',
+                default => 'zinc',
+            }">
+                {{ __('submission-states.'.$submission->state->getValue()) }}
+            </flux:badge>
+
             <flux:badge color="zinc" size="sm">
                 {{ __('Version :number', ['number' => $submission->templateVersion->number]) }}
             </flux:badge>
@@ -130,6 +139,10 @@
             </div>
         @endforeach
     </div>
+
+    <flux:separator />
+
+    <livewire:workflow.review-panel :submission="$submission" :key="'panel-'.$submission->id" />
 
     <div>
         <flux:button variant="ghost" icon="arrow-left" :href="route('submissions.pending')" wire:navigate>

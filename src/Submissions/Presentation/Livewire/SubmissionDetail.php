@@ -8,6 +8,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
 use Livewire\Component;
 use Ronda\Evidence\Application\Queries\SignedEvidenceUrlQuery;
+use Ronda\Evidence\Domain\EvidenceKind;
 use Ronda\Evidence\Domain\Models\Attachment;
 use Ronda\Forms\Domain\Models\TemplateVersion;
 use Ronda\Identity\Domain\Models\User;
@@ -23,7 +24,8 @@ use Ronda\Submissions\Domain\Models\Submission;
  * render, y solo si la Policy lo permite (ADR 0009). Si la pagina se queda
  * abierta mas tiempo, recargarla emite URLs nuevas.
  *
- * Es de solo lectura. Revisar, aprobar y rechazar llegan con Workflow.
+ * Revisar, aprobar, rechazar, comentar y corregir viven en el panel de
+ * Workflow que la vista incrusta (ReviewPanel).
  */
 final class SubmissionDetail extends Component
 {
@@ -44,9 +46,28 @@ final class SubmissionDetail extends Component
         $viewer = auth()->user();
         $firmar = resolve(SignedEvidenceUrlQuery::class);
 
+        $this->submission->loadMissing(['templateVersion.template', 'site', 'author']);
+
+        $version = $this->submission->templateVersion;
+        abort_unless($version instanceof TemplateVersion, 404);
+
+        $fields = $version->formSchema()->fields;
+
+        // Solo la evidencia que usa la respuesta VIGENTE, campo por campo. Tras
+        // una correccion, los archivos sustituidos siguen guardados (los
+        // referencia la revision anterior) pero no son lo entregado.
+        $vigentes = [];
+
+        foreach ($fields as $field) {
+            if (EvidenceKind::forFieldType($field->type) instanceof EvidenceKind) {
+                array_push($vigentes, ...array_map(intval(...), $this->submission->evidenceIds($field->key)));
+            }
+        }
+
         /** @var Collection<string, Collection<int, Attachment>> $porCampo */
         $porCampo = Attachment::query()
             ->where('submission_id', $this->submission->getKey())
+            ->whereIn('id', $vigentes)
             ->orderBy('id')
             ->get()
             ->groupBy('field_key');
@@ -60,13 +81,8 @@ final class SubmissionDetail extends Component
             }
         }
 
-        $this->submission->loadMissing(['templateVersion.template', 'site', 'author']);
-
-        $version = $this->submission->templateVersion;
-        abort_unless($version instanceof TemplateVersion, 404);
-
         return view('submissions::show', [
-            'fields' => $version->formSchema()->fields,
+            'fields' => $fields,
             'attachments' => $porCampo,
             'urls' => $urls,
         ]);
