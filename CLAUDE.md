@@ -80,6 +80,11 @@ La regla de dependencia apunta hacia adentro:
   (`SubmissionApproved`). Job: `<Verbo>Job`.
 - Tablas `snake_case` plural en ingles. Rutas `kebab-case` en espanol.
 - Commits: Conventional Commits.
+- **Ramas, siempre.** Nunca se commitea directo en `main`. Cada trabajo nace en
+  su propia rama con el prefijo de su tipo (`feat/`, `fix/`, `docs/`,
+  `refactor/`, `chore/`...), se sube, y solo cuando esta en verde se hace
+  merge a `main` (`git merge --no-ff`) y push. Aplica tambien a cambios
+  pequenos y de documentacion.
 - Dinero en `numeric(14,2)` con moneda aparte. Nunca `float`.
 - Marcas de tiempo en UTC en la base; se convierten a la zona de la sede al
   mostrar.
