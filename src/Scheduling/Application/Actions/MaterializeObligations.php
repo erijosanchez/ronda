@@ -37,9 +37,14 @@ final readonly class MaterializeObligations
     ) {}
 
     /**
+     * @param  CarbonImmutable|null  $notClosedBefore  descarta las ocurrencias
+     *                                                 cuyo cierre ya paso en ese instante. Lo usa quien crea o cambia
+     *                                                 una programacion a media tarde: sin esto, la entrega de esa
+     *                                                 misma manana naceria vencida y contaria como incumplida sin
+     *                                                 que la sede llegara a verla.
      * @return int cuantas obligaciones nuevas se crearon
      */
-    public function __invoke(Schedule $schedule, string $from, string $to): int
+    public function __invoke(Schedule $schedule, string $from, string $to, ?CarbonImmutable $notClosedBefore = null): int
     {
         if (! $schedule->active) {
             return 0;
@@ -61,6 +66,13 @@ final readonly class MaterializeObligations
             from: $from,
             to: $to,
         );
+
+        if ($notClosedBefore instanceof CarbonImmutable) {
+            $plan = array_values(array_filter(
+                $plan,
+                static fn (PlannedObligation $o): bool => $o->closesAt->greaterThan($notClosedBefore),
+            ));
+        }
 
         if ($plan === []) {
             return 0;

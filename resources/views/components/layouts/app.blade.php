@@ -54,6 +54,10 @@
                 {{ __('Templates') }}
             </flux:navlist.item>
 
+            <flux:navlist.item icon="calendar-days" :href="route('schedules.index')" :current="request()->routeIs('schedules.*')">
+                {{ __('Schedules') }}
+            </flux:navlist.item>
+
             <flux:navlist.item icon="users" :href="route('users.index')" :current="request()->routeIs('users.*')">
                 {{ __('Users') }}
             </flux:navlist.item>

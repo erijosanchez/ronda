@@ -6,33 +6,38 @@ namespace Ronda\Scheduling\Application\Actions;
 
 use Illuminate\Database\ConnectionInterface;
 use Ronda\Scheduling\Application\Data\ScheduleData;
+use Ronda\Scheduling\Domain\Exceptions\InvalidSchedule;
 use Ronda\Scheduling\Domain\Models\Schedule;
 use Ronda\Scheduling\Domain\ScheduleScope;
 use Ronda\Scheduling\Domain\ValueObjects\Recurrence;
 
 /**
- * Crea una programacion. RONDA-PLAN-MAESTRO.md sec. 9.1
+ * Modifica una programacion y replanifica lo que todavia no abrio.
+ * RONDA-PLAN-MAESTRO.md sec. 9.1
  *
- * Solo la escribe: las obligaciones llegan con la siguiente pasada del job. La
- * pantalla usa LaunchSchedule, que ademas las materializa en el acto.
+ * Recibe la programacion ya resuelta: quien la busca es quien aplica la Policy.
  *
- * Escribe en `schedules` y, con el alcance `sites`, en `schedule_site`: va en
- * transaccion (regla 3).
+ * La plantilla no cambia. El cumplimiento de una programacion se lee contra la
+ * plantilla que pedia; cambiarla a mitad mezclaria dos historias en una.
  */
-final readonly class CreateSchedule
+final readonly class UpdateSchedule
 {
     public function __construct(
         private ConnectionInterface $connection,
         private ValidateSchedule $validate,
+        private ReplanObligations $replan,
     ) {}
 
-    public function __invoke(ScheduleData $data): Schedule
+    public function __invoke(Schedule $schedule, ScheduleData $data): Schedule
     {
+        if ($data->templateId !== $schedule->template_id) {
+            throw InvalidSchedule::templateChanged();
+        }
+
         ($this->validate)($data);
 
-        return $this->connection->transaction(function () use ($data): Schedule {
-            $schedule = Schedule::create([
-                'template_id' => $data->templateId,
+        return $this->connection->transaction(function () use ($schedule, $data): Schedule {
+            $schedule->update([
                 'name' => $data->name,
                 'scope' => $data->scope->value,
                 'zone_id' => $data->scope === ScheduleScope::Zone ? $data->zoneId : null,
@@ -41,14 +46,17 @@ final readonly class CreateSchedule
                 'window_end' => $data->windowEnd,
                 'tolerance_minutes' => $data->toleranceMinutes,
                 'skip_holidays' => $data->skipHolidays,
-                'active' => true,
                 'starts_on' => $data->startsOn,
                 'ends_on' => $data->endsOn,
             ]);
 
-            if ($data->scope === ScheduleScope::Sites) {
-                $schedule->sites()->sync($data->siteIds);
-            }
+            // Fuera del alcance `sites` la lista no significa nada; dejarla
+            // guardada haria que volviera a aparecer al cambiar de alcance.
+            $schedule->sites()->sync($data->scope === ScheduleScope::Sites ? $data->siteIds : []);
+
+            $schedule->refresh();
+
+            ($this->replan)($schedule);
 
             return $schedule;
         });

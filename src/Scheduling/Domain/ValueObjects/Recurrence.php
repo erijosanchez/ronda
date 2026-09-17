@@ -86,4 +86,25 @@ final readonly class Recurrence
 
         return $fechas;
     }
+
+    /**
+     * Las primeras fechas en las que toca entrega a partir de un dia, incluido.
+     * Sirve para que quien programa vea lo que ha escrito antes de guardarlo.
+     *
+     * @param  string  $anchor  primer dia de la programacion (Y-m-d)
+     * @param  string  $from  primer dia que interesa (Y-m-d)
+     * @return list<string> fechas Y-m-d, ordenadas
+     */
+    public function nextDates(string $anchor, string $from, int $limit): array
+    {
+        $rrule = new RRule($this->rule, new DateTimeImmutable($anchor.' 00:00:00', new DateTimeZone('UTC')));
+
+        $fechas = [];
+
+        foreach ($rrule->getOccurrencesAfter(CarbonImmutable::parse($from.' 00:00:00', 'UTC'), true, $limit) as $occurrence) {
+            $fechas[] = $occurrence->format('Y-m-d');
+        }
+
+        return $fechas;
+    }
 }
