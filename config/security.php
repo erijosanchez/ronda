@@ -51,6 +51,10 @@ return [
 
     'evidence' => [
         'signed_url_ttl' => (int) env('EVIDENCE_SIGNED_URL_TTL', 5),
+
+        // Tamano maximo de un archivo de evidencia, en kilobytes (sec. 10.4).
+        // Sera por plan cuando exista la facturacion.
+        'max_kilobytes' => (int) env('EVIDENCE_MAX_KILOBYTES', 10240),
     ],
 
 ];

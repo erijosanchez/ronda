@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Ronda\Submissions\Presentation\Livewire\PendingObligations;
+use Ronda\Submissions\Presentation\Livewire\SubmissionDetail;
 use Ronda\Submissions\Presentation\Livewire\SubmissionForm;
 
 /*
@@ -17,3 +18,7 @@ use Ronda\Submissions\Presentation\Livewire\SubmissionForm;
 
 Route::get('/pendientes', PendingObligations::class)->name('submissions.pending');
 Route::get('/pendientes/{obligation}', SubmissionForm::class)->name('submissions.create');
+
+// SubmissionPolicy decide: permiso de ver envios (o ser su autor) y alcanzar
+// la sede.
+Route::get('/envios/{submission}', SubmissionDetail::class)->name('submissions.show');

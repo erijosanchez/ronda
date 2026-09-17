@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Providers\AppServiceProvider;
 use App\Providers\TenancyServiceProvider;
 use Ronda\Directory\Presentation\Providers\DirectoryServiceProvider;
+use Ronda\Evidence\Presentation\Providers\EvidenceServiceProvider;
 use Ronda\Forms\Presentation\Providers\FormsServiceProvider;
 use Ronda\Identity\Presentation\Providers\AuthorizationServiceProvider;
 use Ronda\Identity\Presentation\Providers\FortifyServiceProvider;
@@ -24,4 +25,5 @@ return [
     FormsServiceProvider::class,
     SchedulingServiceProvider::class,
     SubmissionsServiceProvider::class,
+    EvidenceServiceProvider::class,
 ];

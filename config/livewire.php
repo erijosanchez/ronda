@@ -136,7 +136,12 @@ return [
     */
 
     'temporary_file_upload' => [
-        'disk' => env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK'), // Example: 'local', 's3'             | Default: 'default'
+        // Local y no el disco por defecto (s3): con s3 Livewire sube directo al
+        // bucket con una URL prefirmada que apunta a minio:9000, inalcanzable
+        // desde el navegador, y dejaria la evidencia sin validar en el bucket.
+        // La subida temporal vive en el servidor hasta que StoreEvidence la
+        // valida y la guarda (ADR 0009).
+        'disk' => env('LIVEWIRE_TEMPORARY_FILE_UPLOAD_DISK', 'local'),
         'rules' => null,                                      // Example: ['file', 'mimes:png,jpg'] | Default: ['required', 'file', 'max:12288'] (12MB)
         'directory' => null,                                  // Example: 'tmp'                     | Default: 'livewire-tmp'
         'middleware' => null,                                 // Example: 'throttle:5,1'            | Default: 'throttle:60,1'

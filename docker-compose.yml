@@ -153,6 +153,23 @@ services:
       retries: 10
     networks: [ronda]
 
+  # Crea el bucket privado de evidencia y se va. Sin esto la primera subida
+  # falla con NoSuchBucket. Nunca se le da acceso anonimo (ADR 0009).
+  minio-init:
+    image: minio/minio:latest
+    depends_on:
+      minio: {condition: service_healthy}
+    environment:
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-ronda}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-secretsecret}
+      AWS_BUCKET: ${AWS_BUCKET:-ronda-evidence}
+    entrypoint: >
+      /bin/sh -c "mc alias set local http://minio:9000 $$AWS_ACCESS_KEY_ID $$AWS_SECRET_ACCESS_KEY
+      && mc mb --ignore-existing local/$$AWS_BUCKET
+      && mc anonymous set none local/$$AWS_BUCKET"
+    restart: "no"
+    networks: [ronda]
+
 networks:
   ronda:
     driver: bridge

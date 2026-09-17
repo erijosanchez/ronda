@@ -266,7 +266,7 @@ it('la lista de pendientes muestra solo las sedes del usuario', function (): voi
     });
 })->group('submissions');
 
-it('entrega desde la pantalla y vuelve a la lista', function (): void {
+it('entrega desde la pantalla y muestra el envio', function (): void {
     enAcmeEntrega(function (): void {
         $sede = Site::factory()->create();
         $obligacion = obligacionDeArqueo($sede);
@@ -279,7 +279,8 @@ it('entrega desde la pantalla y vuelve a la lista', function (): void {
             ->set('answers.monto', '875.00')
             ->call('submit')
             ->assertHasNoErrors()
-            ->assertRedirect(route('submissions.pending'));
+            // A la ficha del envio: es el comprobante de lo que se entrego.
+            ->assertRedirect(route('submissions.show', ['submission' => $obligacion->refresh()->submission_id]));
 
         expect($obligacion->refresh()->status)->toBeInstanceOf(Fulfilled::class);
 

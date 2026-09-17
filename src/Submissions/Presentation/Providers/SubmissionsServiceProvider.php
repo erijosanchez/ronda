@@ -7,6 +7,7 @@ namespace Ronda\Submissions\Presentation\Providers;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Ronda\Submissions\Presentation\Livewire\PendingObligations;
+use Ronda\Submissions\Presentation\Livewire\SubmissionDetail;
 use Ronda\Submissions\Presentation\Livewire\SubmissionForm;
 
 /**
@@ -20,5 +21,6 @@ final class SubmissionsServiceProvider extends ServiceProvider
 
         Livewire::component('submissions.pending-obligations', PendingObligations::class);
         Livewire::component('submissions.submission-form', SubmissionForm::class);
+        Livewire::component('submissions.submission-detail', SubmissionDetail::class);
     }
 }

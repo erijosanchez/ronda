@@ -224,5 +224,20 @@
     "day of the month": "día del mes",
     "rule": "regla",
     "due time": "hora de vencimiento",
-    "tolerance": "tolerancia"
+    "tolerance": "tolerancia",
+    ":meters m from the site": "A :meters m de la sede",
+    "Back to pending": "Volver a pendientes",
+    "Clear signature": "Borrar firma",
+    "Late by :minutes min": "Tarde por :minutes min",
+    "Location from the device": "Ubicación del dispositivo",
+    "Location from the photo": "Ubicación de la foto",
+    "No location": "Sin ubicación",
+    "On time": "A tiempo",
+    "Remove file": "Quitar archivo",
+    "Signed from :ip": "Firmado desde :ip",
+    "Taken :date": "Tomada el :date",
+    "Taken more than a day before submitting": "Tomada más de un día antes de la entrega",
+    "Uploading...": "Subiendo...",
+    "Version :number": "Versión :number",
+    "file": "archivo"
 }

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ronda\Submissions\Domain\Services;
 
 use Carbon\CarbonImmutable;
+use Ronda\Evidence\Domain\EvidenceKind;
 use Ronda\Forms\Domain\ValueObjects\Field;
 use Ronda\Forms\Domain\ValueObjects\FieldType;
 use Ronda\Forms\Domain\ValueObjects\FormSchema;
@@ -24,11 +25,16 @@ use Throwable;
  * Los numeros y los importes se guardan como TEXTO decimal, no como float. Un
  * arqueo de 1234.10 convertido a float y vuelto a leer no siempre es 1234.10.
  *
- * Tipos que todavia no se pueden responder: foto, archivo y firma dependen del
- * modulo Evidence, y la tabla de filas de un editor propio. Si uno de ellos es
- * obligatorio y visible, el envio se rechaza con un mensaje que lo dice; si es
- * opcional, se ignora. Rechazar es preferible a aceptar un arqueo al que le
- * falta la foto que el cliente exigio.
+ * Foto, archivo y firma no viajan en `answers`: son archivos, y su contenido lo
+ * valida Evidence. Aqui solo se decide si el campo los exige y cuantos admite, a
+ * partir de cuantos llegaron (`$evidenceCounts`). Un campo con evidencia
+ * aceptada sale con una lista vacia como marcador; SubmitReport la sustituye
+ * por los ids de los archivos una vez guardados.
+ *
+ * La tabla de filas todavia no se puede responder: necesita un editor propio.
+ * Si es obligatoria y visible, el envio se rechaza con un mensaje que lo dice.
+ * Rechazar es preferible a aceptar un arqueo al que le falta lo que el cliente
+ * exigio.
  */
 final class AnswerValidator
 {
@@ -36,19 +42,17 @@ final class AnswerValidator
      * @var list<FieldType>
      */
     private const array NOT_YET_SUPPORTED = [
-        FieldType::Photo,
-        FieldType::File,
-        FieldType::Signature,
         FieldType::Table,
     ];
 
     /**
      * @param  array<string, mixed>  $answers
+     * @param  array<string, int>  $evidenceCounts  archivos recibidos por campo
      * @return array<string, string|bool|list<string>>
      *
      * @throws InvalidAnswers
      */
-    public function validate(FormSchema $schema, array $answers): array
+    public function validate(FormSchema $schema, array $answers, array $evidenceCounts = []): array
     {
         $errores = [];
         $limpias = [];
@@ -60,6 +64,23 @@ final class AnswerValidator
 
             // Un campo oculto por su condicion ni se exige ni se guarda.
             if ($field->visibleWhen instanceof VisibilityCondition && ! $field->visibleWhen->isSatisfiedBy($answers)) {
+                continue;
+            }
+
+            $clase = EvidenceKind::forFieldType($field->type);
+
+            if ($clase instanceof EvidenceKind) {
+                $recibidos = $evidenceCounts[$field->key] ?? 0;
+                $maximo = $clase->maxPerField();
+
+                if ($recibidos === 0 && $field->required) {
+                    $errores[$field->key] = "«{$field->label}» es obligatorio.";
+                } elseif ($recibidos > $maximo) {
+                    $errores[$field->key] = "«{$field->label}» admite como mucho {$maximo} archivo(s).";
+                } elseif ($recibidos > 0) {
+                    $limpias[$field->key] = [];
+                }
+
                 continue;
             }
 

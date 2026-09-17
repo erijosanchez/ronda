@@ -1,7 +1,8 @@
 # Dónde nos quedamos — 16 de septiembre de 2026
 
 Estado del proyecto: **fase 0 cerrada; fase 1 con los cuatro primeros
-eslabones del motor en pie y ya operables desde la interfaz**.
+eslabones del motor en pie y operables desde la interfaz, con evidencia
+probatoria**.
 El plan completo está en `../../RONDA-PLAN-MAESTRO.md`, documento interno que
 no forma parte de este repositorio (el repositorio es público).
 
@@ -11,7 +12,7 @@ no forma parte de este repositorio (el repositorio es público).
 
 Se diseñan plantillas, se programan **desde la pantalla**, el motor materializa
 las obligaciones, y el encargado ve su lista de pendientes de hoy y entrega el
-reporte, que cumple la obligación. Lo que falta es **revisar** lo entregado y **medir**.
+reporte **con fotos, archivos y firma**, que cumple la obligación. Lo que falta es **revisar** lo entregado y **medir**.
 
 ```
 PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO → KPI
@@ -22,7 +23,7 @@ PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO
 ## Lo que funciona, verificado ejecutándolo
 
 Todo junto: `docker compose exec app composer check` (pint + phpstan + rector +
-deptrac + pest). La suite tarda **~6 minutos** (por eso `composer.json` fija `process-timeout: 0`; con el límite de 300 s de Composer, `check` se cortaba): la suite `Integration`
+deptrac + pest). La suite tarda **~7 minutos** (por eso `composer.json` fija `process-timeout: 0`; con el límite de 300 s de Composer, `check` se cortaba): la suite `Integration`
 provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 
 | Módulo | Qué hace | Pantallas |
@@ -32,12 +33,58 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/usuarios/{id}/sedes` |
 | `Forms` | Plantillas versionadas, diseñador visual, publicación | `/plantillas` |
 | `Scheduling` | Programaciones RRULE, feriados, materialización y replanificación de obligaciones | `/programaciones` |
-| `Submissions` | Entrega de reportes, validación contra la versión, réplica reportable | `/pendientes` |
+| `Submissions` | Entrega de reportes, validación contra la versión, réplica reportable, ficha del envío | `/pendientes`, `/envios/{id}` |
+| `Evidence` | Fotos, archivos y firma en bucket privado; SHA-256, EXIF, distancia a la sede, URL firmada | `/evidencia/{id}` (firmada) |
 | `Insights` | Panel de aterrizaje | `/panel` |
 
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### `Evidence` — evidencia con valor probatorio (ADR 0009, §9.5)
+
+- **Bucket privado.** Disco `evidence` (S3: MinIO en local, R2 en producción),
+  `throw` activo. El servicio `minio-init` de docker compose crea el bucket y lo
+  deja sin acceso anónimo (la imagen `minio/mc` ya no se publica; se usa el `mc`
+  que trae `minio/minio`). Rutas `tenants/<id>/<año>/<mes>/<ulid>.<ext>`: el
+  prefijo del tenant se pone a mano para poder purgar por cliente.
+- **Validación por contenido** (`finfo`), lista blanca por clase
+  (`EvidenceKind`): foto = JPEG/PNG/WEBP; archivo = eso + PDF, XLSX, DOCX;
+  firma = solo PNG. **Nunca SVG.** Máximo 10 MB (`security.evidence`), 5
+  archivos por campo y 1 firma.
+- **EXIF:** se extraen fecha de captura y GPS a columnas **antes** de sanear;
+  después la imagen se **reescribe desde sus píxeles** (`ImageSanitizer`), lo
+  que borra todo el metadato, desactiva polyglots y aplica la orientación. El
+  **SHA-256 es del archivo guardado**, no del recibido.
+- **Ubicación:** la del EXIF manda; si no hay (muchos navegadores móviles la
+  quitan), la del dispositivo al entregar (`navigator.geolocation`). Se guarda
+  `location_source` y la **distancia a la sede**. La ficha señala fotos a más de
+  500 m y tomadas más de 24 h antes de entregar.
+- **Firma:** canvas Alpine (`resources/js/evidence.js`, sin scripts en línea por
+  la CSP) → PNG → misma tubería, con IP y hora del servidor. **Desviación del
+  plan:** no hay tabla `signatures`; la firma es un `attachment` con
+  `kind = signature` (documentado en la migración).
+- **Transacción + compensación:** `SubmitReport` guarda envío, adjuntos y
+  obligación en una transacción. El bucket no participa: si algo falla después
+  de subir, `DiscardEvidence` borra lo subido. Probado con una segunda foto
+  inválida.
+- **URL firmada servida por la app** (`/evidencia/{id}`, middleware `signed`,
+  5 min), no URL prefirmada del bucket: la firma lleva el dominio del tenant, el
+  bucket no tiene que ser alcanzable desde fuera y la **Policy se evalúa al
+  firmar y otra vez al servir**. Exige sesión. `nosniff`, `no-store`, solo las
+  imágenes inline, y cabecera `X-Evidence-SHA256`.
+- **Policies:** `SubmissionPolicy` (ver envíos o ser su autor, y alcanzar la
+  sede) y `AttachmentPolicy` (`evidence.view` o haberlo subido, y poder ver el
+  envío).
+- **Ficha del envío** `/envios/{id}`: respuestas leídas con la versión con la que
+  se respondió, evidencia con hash, distancia, hora de captura y origen de la
+  ubicación. Tras entregar se redirige ahí (antes, a pendientes).
+- Las subidas temporales de Livewire van al disco **local** (con s3 subían
+  directo a `minio:9000`, inalcanzable desde el navegador, y sin validar).
+- Pruebas: fotos con EXIF construidas byte a byte (`tests/Support/EvidenceFixtures`).
+  Se sondeó quitando la firma de la ruta, la Policy al servir, la compensación y
+  el saneado: cada una rompe sus pruebas. §7.5 cubierto: la URL de A se rechaza
+  en B **aunque B tenga un adjunto con el mismo id**.
 
 ### `Scheduling` — pantalla de programaciones
 
@@ -127,10 +174,8 @@ dejaba huérfanas; ahora autoriza antes de tocar nada.
 
 **Límites conocidos de la entrega:**
 
-- **Foto, archivo, firma y tabla de filas no se pueden completar** hasta el
-  módulo `Evidence`. Si un formulario tiene uno obligatorio y visible, el envío
-  se rechaza con un mensaje que lo dice — mejor que aceptar un arqueo sin la
-  foto exigida.
+- **La tabla de filas no se puede completar** (necesita un editor propio). Si
+  es obligatoria y visible, el envío se rechaza con un mensaje que lo dice.
 - **Los campos calculados no se calculan**: no hay motor de fórmulas.
 - Sin borrador en servidor: el plan (§13.3) lo pone en el dispositivo.
 
@@ -152,6 +197,14 @@ cada sede.
 
 ## Puntos abiertos (ninguno bloquea)
 
+- **Evidence, pendiente del §9.5/§10.4:** marca de agua opcional, antivirus
+  (ClamAV) con cuarentena, geoetiqueta *obligatoria* por campo (el diseñador no
+  tiene la opción), cuota por plan, retención/purga y registro en
+  `audit_trail` de cada acceso. Las orientaciones EXIF 5 y 7 (espejadas) se
+  aproximan.
+- **La evidencia se sirve a través de la app.** Con mucho volumen conviene
+  servir desde R2 con URL prefirmada tras autorizar; hoy se prefirió la
+  garantía de dominio y Policy por acceso.
 - **Zonas y cargos no tienen pantalla.** El formulario de sede ofrece zonas pero
   no se pueden crear desde la interfaz.
 - **El job horario puede crear obligaciones ya cerradas** para una sede dada
@@ -173,8 +226,7 @@ cada sede.
 ## Lo que queda del plan, en orden
 
 1. ~~Pantalla de programaciones.~~ Hecha.
-2. **`Evidence`** — fotos con SHA-256, geoetiqueta y URL firmada (ADR 0009).
-   Desbloquea los campos de foto, archivo y firma.
+2. ~~`Evidence`.~~ Hecho (con los pendientes de arriba).
 3. **`Workflow`** — revisión y aprobación (§9.4). La máquina de estados ya
    está declarada; faltan las Actions y la bandeja del supervisor.
 4. **`Notifications`** — recordatorios y escalamiento.
@@ -187,7 +239,7 @@ cada sede.
 
 ```bash
 cd c:/proyecto/ronda
-docker compose up -d
+docker compose up -d                                  # minio-init crea el bucket y sale
 docker compose ps                                     # los ocho healthy
 docker compose exec app php artisan migrate           # base central
 docker compose exec app php artisan db:seed           # tenant de demostración
