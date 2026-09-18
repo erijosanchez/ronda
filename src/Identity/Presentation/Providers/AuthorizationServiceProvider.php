@@ -6,8 +6,12 @@ namespace Ronda\Identity\Presentation\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Ronda\Directory\Application\Policies\PositionPolicy;
 use Ronda\Directory\Application\Policies\SitePolicy;
+use Ronda\Directory\Application\Policies\ZonePolicy;
+use Ronda\Directory\Domain\Models\Position;
 use Ronda\Directory\Domain\Models\Site;
+use Ronda\Directory\Domain\Models\Zone;
 use Ronda\Evidence\Application\Policies\AttachmentPolicy;
 use Ronda\Evidence\Domain\Models\Attachment;
 use Ronda\Forms\Application\Policies\TemplatePolicy;
@@ -39,6 +43,8 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
     protected $policies = [
         User::class => UserPolicy::class,
         Site::class => SitePolicy::class,
+        Zone::class => ZonePolicy::class,
+        Position::class => PositionPolicy::class,
         Template::class => TemplatePolicy::class,
         Schedule::class => SchedulePolicy::class,
         Obligation::class => ObligationPolicy::class,

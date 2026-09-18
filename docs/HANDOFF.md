@@ -1,4 +1,4 @@
-# Dónde nos quedamos — 19 de septiembre de 2026
+# Dónde nos quedamos — 20 de septiembre de 2026
 
 Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo de punta a
 punta: se programa, se entrega con evidencia, se revisa, el sistema avisa y
@@ -33,7 +33,7 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 |---|---|---|
 | `Platform` | Provisión de tenant con base propia, aislamiento de sesión | — |
 | `Identity` | Usuarios, roles, permisos, 2FA, invariantes del propietario | `/usuarios` |
-| `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/usuarios/{id}/sedes` |
+| `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/zonas`, `/cargos`, `/usuarios/{id}/sedes` |
 | `Forms` | Plantillas versionadas, diseñador visual, publicación | `/plantillas` |
 | `Scheduling` | Programaciones RRULE, feriados, materialización y replanificación de obligaciones | `/programaciones` |
 | `Submissions` | Entrega de reportes, validación contra la versión, réplica reportable, ficha del envío | `/pendientes`, `/envios/{id}` |
@@ -45,6 +45,30 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### `Directory` — zonas y cargos con pantalla (§8.3)
+
+Era el hueco que impedía que un cliente montara su propia estructura: las zonas
+solo se podían sembrar por código, y programar «todas las sedes de una zona»
+era inusable desde la interfaz.
+
+- **`/zonas`**: listado, alta y edición, con jerarquía (una zona cuelga de otra)
+  y responsable informativo. **Una zona no puede colgar de sí misma ni de una de
+  sus hijas**: sería un ciclo, y recorrer el árbol dejaría de terminar. Lo
+  impide la Action, porque la base no puede.
+- **`/cargos`**: lista y alta en la misma pantalla (un cargo son dos campos y se
+  crean de cinco en cinco al montar el cliente).
+- **Borrar comprueba antes lo que cuelga** y dice qué mover, en vez de dejar
+  reventar la restricción de PostgreSQL: una zona con sedes, con subzonas o
+  **usada en una programación** no se borra. Esto último la base no lo impide
+  (el borrado es lógico) y habría dejado la programación sin materializar en
+  silencio. Un cargo que alguien ocupa, tampoco.
+- Permisos: las zonas se gobiernan con los de sedes (`site.view` /
+  `site.manage`); los cargos, con los de personas (`user.view` /
+  `user.manage`), que es quien organiza el organigrama.
+- El menú agrupa Sedes, Zonas y Cargos bajo **Estructura**.
+- Sondeado quitando: el guardia del ciclo, la comprobación de programaciones, la
+  de asignaciones y el permiso de ver cargos.
 
 ### `Insights` — los KPI (§9.6)
 
@@ -331,8 +355,6 @@ cada sede.
 - **La evidencia se sirve a través de la app.** Con mucho volumen conviene
   servir desde R2 con URL prefirmada tras autorizar; hoy se prefirió la
   garantía de dominio y Policy por acceso.
-- **Zonas y cargos no tienen pantalla.** El formulario de sede ofrece zonas pero
-  no se pueden crear desde la interfaz.
 - **El job horario puede crear obligaciones ya cerradas** para una sede dada
   de alta a media tarde (el día en curso), que en la pasada siguiente quedan
   `missed`. La pantalla ya lo evita con `notClosedBefore`; aplicarlo también al

@@ -53,9 +53,19 @@
                 </flux:navlist.item>
             @endcan
 
-            <flux:navlist.item icon="building-office" :href="route('sites.index')" :current="request()->routeIs('sites.*')">
-                {{ __('Sites') }}
-            </flux:navlist.item>
+            <flux:navlist.group :heading="__('Structure')" expandable :expanded="request()->routeIs('sites.*', 'zones.*', 'positions.*')">
+                <flux:navlist.item icon="building-office" :href="route('sites.index')" :current="request()->routeIs('sites.*')">
+                    {{ __('Sites') }}
+                </flux:navlist.item>
+
+                <flux:navlist.item icon="map" :href="route('zones.index')" :current="request()->routeIs('zones.*')">
+                    {{ __('Zones') }}
+                </flux:navlist.item>
+
+                <flux:navlist.item icon="identification" :href="route('positions.index')" :current="request()->routeIs('positions.*')">
+                    {{ __('Positions') }}
+                </flux:navlist.item>
+            </flux:navlist.group>
 
             <flux:navlist.item icon="document-text" :href="route('templates.index')" :current="request()->routeIs('templates.*')">
                 {{ __('Templates') }}
