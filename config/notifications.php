@@ -26,6 +26,8 @@ return [
         NotificationTopic::ReviewOverdue->value => ['database', 'mail'],
         NotificationTopic::SubmissionApproved->value => ['database'],
         NotificationTopic::SubmissionRejected->value => ['database', 'mail'],
+        // Una exportacion tarda minutos: quien la pidio ya se fue a otra cosa.
+        NotificationTopic::ExportReady->value => ['database', 'mail'],
     ],
 
     /*

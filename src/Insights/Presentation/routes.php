@@ -3,7 +3,9 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Ronda\Insights\Presentation\Http\ExportDownloadController;
 use Ronda\Insights\Presentation\Livewire\Dashboard;
+use Ronda\Insights\Presentation\Livewire\ExportList;
 
 /*
 | Rutas del modulo Insights.
@@ -16,3 +18,8 @@ use Ronda\Insights\Presentation\Livewire\Dashboard;
 */
 
 Route::get('/panel', Dashboard::class)->name('panel');
+
+// Exportaciones (sec. 13): se encargan aqui y las escribe un job. El archivo
+// sale por la aplicacion, nunca por una URL del bucket.
+Route::get('/exportaciones', ExportList::class)->name('exports.index');
+Route::get('/exportaciones/{export}/descargar', ExportDownloadController::class)->name('exports.download');

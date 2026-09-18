@@ -57,9 +57,15 @@
             </flux:select>
         </div>
 
-        <flux:text class="text-xs">
-            {{ __('From :from to :to. Updated every hour.', ['from' => $from, 'to' => $to]) }}
-        </flux:text>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <flux:text class="text-xs">
+                {{ __('From :from to :to. Updated every hour.', ['from' => $from, 'to' => $to]) }}
+            </flux:text>
+
+            <flux:button size="sm" icon="arrow-down-tray" :href="route('exports.index')" wire:navigate>
+                {{ __('Export') }}
+            </flux:button>
+        </div>
 
         {{-- Indicadores --}}
         @php
