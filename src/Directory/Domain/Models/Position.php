@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ronda\Directory\Domain\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
@@ -25,6 +26,17 @@ final class Position extends Model
 
     /** @var list<string> */
     protected $fillable = ['name', 'level'];
+
+    /**
+     * Cuanta gente ocupa este cargo en alguna sede. Es lo que impide borrarlo
+     * por debajo (ver DeletePosition).
+     *
+     * @return HasMany<SiteAssignment, $this>
+     */
+    public function assignments(): HasMany
+    {
+        return $this->hasMany(SiteAssignment::class);
+    }
 
     /**
      * @return array<string, string>
