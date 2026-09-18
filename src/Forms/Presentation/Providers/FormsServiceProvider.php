@@ -6,6 +6,7 @@ namespace Ronda\Forms\Presentation\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use Ronda\Forms\Presentation\Livewire\TemplateCatalog;
 use Ronda\Forms\Presentation\Livewire\TemplateDesigner;
 use Ronda\Forms\Presentation\Livewire\TemplateList;
 
@@ -20,5 +21,6 @@ final class FormsServiceProvider extends ServiceProvider
 
         Livewire::component('forms.template-list', TemplateList::class);
         Livewire::component('forms.template-designer', TemplateDesigner::class);
+        Livewire::component('forms.template-catalog', TemplateCatalog::class);
     }
 }
