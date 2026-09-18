@@ -357,5 +357,15 @@
     "Delete this position?": "¿Eliminar este cargo?",
     "level": "nivel",
     "manager": "responsable",
-    "parent zone": "zona superior"
+    "parent zone": "zona superior",
+    "Template catalog": "Catálogo de plantillas",
+    "From the catalog": "Del catálogo",
+    "Ready-made templates for the usual work. Install one and it becomes yours: edit it, version it and schedule it like any other.": "Plantillas listas para el trabajo de siempre. Instala una y pasa a ser tuya: la editas, la versionas y la programas como cualquier otra.",
+    "Install": "Instalar",
+    "Installed": "Instalada",
+    "Open template": "Abrir plantilla",
+    "Back to templates": "Volver a plantillas",
+    ":count field|:count fields": ":count campo|:count campos",
+    "«:template» installed. Schedule it to start asking for it.": "«:template» instalada. Prográmala para empezar a pedirla.",
+    "That template is not in the catalog.": "Esa plantilla no está en el catálogo."
 }

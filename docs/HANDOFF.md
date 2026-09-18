@@ -34,7 +34,7 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Platform` | Provisión de tenant con base propia, aislamiento de sesión | — |
 | `Identity` | Usuarios, roles, permisos, 2FA, invariantes del propietario | `/usuarios` |
 | `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/zonas`, `/cargos`, `/usuarios/{id}/sedes` |
-| `Forms` | Plantillas versionadas, diseñador visual, publicación | `/plantillas` |
+| `Forms` | Plantillas versionadas, diseñador visual, publicación, catálogo de arranque | `/plantillas`, `/plantillas/catalogo` |
 | `Scheduling` | Programaciones RRULE, feriados, materialización y replanificación de obligaciones | `/programaciones` |
 | `Submissions` | Entrega de reportes, validación contra la versión, réplica reportable, ficha del envío | `/pendientes`, `/envios/{id}` |
 | `Workflow` | Revisión: tomar, aprobar, rechazar, corregir; historial, comentarios y revisiones anteriores | `/revision`, `/envios/{id}/corregir` |
@@ -45,6 +45,29 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### `Forms` — el catálogo de arranque (§3.5)
+
+Las cinco plantillas del plan, listas para instalar: arqueo de caja, depósito
+bancario, apertura y cierre, reporte de incidencias y checklist de limpieza.
+
+- **Son configuración del motor, no código**: cada una es un esquema de campos
+  de los mismos tipos que ofrece el diseñador. Instalar deja una plantilla
+  **normal y publicada**, que se edita, versiona y programa como cualquier otra;
+  nada del resto del sistema sabe que vino del catálogo.
+- **No se instalan solas** al crear el cliente: cada uno pide unas cosas y no
+  otras, y un catálogo entero volcado en la lista es ruido que hay que borrar.
+  Se instalan desde `/plantillas/catalogo`.
+- **Instalar dos veces no duplica ni pisa** lo que el cliente haya cambiado: si
+  ya existe el código, se devuelve esa plantilla y no se publica versión nueva.
+- Instalar pide `template.publish`, el mismo permiso que publicar: es lo que
+  empieza a exigir entregas a las sedes.
+- Usan de verdad lo que el motor ya sabe hacer: condiciones de visibilidad (el
+  motivo de la diferencia solo si la hay; la alarma solo al cerrar), foto y
+  firma obligatorias, y campos reportables para el KPI.
+- Una prueba construye los cinco esquemas con las mismas reglas que los del
+  cliente: si un catálogo se rompe (una condición a un campo inexistente, una
+  clave repetida), la CI lo para.
 
 ### `Directory` — zonas y cargos con pantalla (§8.3)
 

@@ -12,9 +12,15 @@
         </div>
 
         @if ($canManage)
-            <flux:button variant="primary" icon="plus" :href="route('templates.create')" wire:navigate>
-                {{ __('New template') }}
-            </flux:button>
+            <div class="flex flex-wrap gap-2">
+                <flux:button icon="squares-plus" :href="route('templates.catalog')" wire:navigate>
+                    {{ __('From the catalog') }}
+                </flux:button>
+
+                <flux:button variant="primary" icon="plus" :href="route('templates.create')" wire:navigate>
+                    {{ __('New template') }}
+                </flux:button>
+            </div>
         @endif
     </div>
 
