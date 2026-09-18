@@ -15,6 +15,7 @@ use Ronda\Forms\Domain\Models\Template;
 use Ronda\Identity\Application\Policies\OwnerGate;
 use Ronda\Identity\Application\Policies\UserPolicy;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Insights\Application\Policies\ReportPolicy;
 use Ronda\Scheduling\Application\Policies\SchedulePolicy;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Scheduling\Domain\Models\Schedule;
@@ -48,6 +49,10 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
+
+        // Los KPI no cuelgan de un modelo: son una lectura del conjunto. La
+        // habilidad se define aqui y la decision sigue en una Policy (regla 4).
+        Gate::define('view-reports', [ReportPolicy::class, 'view']);
 
         // El propietario del tenant pasa por encima de toda Policy.
         //

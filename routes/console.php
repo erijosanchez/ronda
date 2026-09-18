@@ -35,3 +35,14 @@ Schedule::command('notifications:sla')
     ->hourlyAt(10)
     ->withoutOverlapping()
     ->onOneServer();
+
+// Los KPI (sec. 9.6): se materializan por job y ninguna pantalla agrega sobre
+// la tabla de envios en tiempo real.
+//
+// Cada hora y sobre una ventana de dias, no solo sobre hoy: una aprobacion o
+// una justificacion de ayer cambian cifras de dias ya cerrados. Recalcular el
+// rango entero es idempotente.
+Schedule::command('kpi:recalculate')
+    ->hourlyAt(20)
+    ->withoutOverlapping()
+    ->onOneServer();
