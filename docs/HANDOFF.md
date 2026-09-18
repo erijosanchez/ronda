@@ -23,6 +23,25 @@ PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO
 
 ---
 
+## Por dónde seguir (acordado con el cliente)
+
+**Siguiente: la PWA con captura offline.** El plan marca la adopción del
+encargado de local como el riesgo real número uno del producto (§18, riesgo 5):
+si el encargado no puede llenar su reporte con mala señal, no lo llena. Después
+va la fase 2 (onboarding self-service, planes y límites, facturación,
+back-office, sitio público) y solo entonces la API, que es fase 3.
+
+Avance sobre el alcance del plan, ponderado por las semanas que estima cada
+fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~15 %**, fases 3 a 5 sin
+empezar. Para tener un piloto operando falta poco; para vender solo, bastante
+más, y casi todo lo que falta ahí no es código.
+
+**Lo que no puede hacer el código y conviene empezar ya:** el trámite de
+WhatsApp Business con Meta. El plan lo pone en la fase 1 justamente porque
+tarda, y el aviso por WhatsApp es donde ya vive la operación de los clientes.
+
+---
+
 ## Lo que funciona, verificado ejecutándolo
 
 Todo junto: `docker compose exec app composer check` (pint + phpstan + rector +
@@ -425,12 +444,27 @@ cada sede.
 
 ## Lo que queda del plan, en orden
 
-1. ~~Pantalla de programaciones.~~ Hecha.
-2. ~~`Evidence`.~~ Hecho (con los pendientes de arriba).
-3. ~~`Workflow`.~~ Hecho (con los pendientes de arriba).
-4. ~~`Notifications`.~~ Hecho (con los pendientes de arriba).
-5. ~~`Insights`.~~ Hecho (con los pendientes de arriba).
-6. **`Api`**, Sentry/Pulse, provisión asíncrona con progreso.
+Hecho desde el último corte: pantalla de programaciones, `Evidence`,
+`Workflow`, `Notifications`, `Insights` (KPI), zonas y cargos con pantalla, el
+catálogo de las 5 plantillas y la exportación a Excel en cola. Todo con sus
+pendientes anotados arriba.
+
+Lo que queda, en el orden acordado:
+
+1. **PWA con captura offline** (§13.3): borrador en el dispositivo, cola de
+   envío y evidencia diferida. Es el riesgo de adopción número uno.
+2. **WhatsApp** en `Notifications`, en cuanto Meta apruebe el trámite.
+3. **Fase 2 — producto vendible**: onboarding self-service, planes y límites
+   (`laravel/pennant`), facturación, back-office con impersonación auditada,
+   sitio público y precios.
+4. **Fase 3 — apertura**: API pública v1 con OpenAPI, webhooks, importadores
+   (CSV de sedes y usuarios), integraciones e informes programados.
+5. **Fase 4 — migrar TriMax** como tenant: es la prueba de fuego del motor.
+6. **Fase 5 — endurecer y GA**: pentest, carga con k6, ensayo de recuperación,
+   ANPD y documentación de usuario.
+
+Transversal y aún sin empezar: `audit_trail` encadenada por hash (§13),
+Sentry/Pulse y la provisión asíncrona con progreso.
 
 ---
 
@@ -450,7 +484,19 @@ docker compose exec app composer check
 
 - Aplicación: http://demo.localhost:8000/login — `owner@demo.test` · `password-de-desarrollo`
 - Portada central: http://localhost:8000 (sin login, a propósito)
-- Materializar a mano: `docker compose exec app php artisan obligations:materialize --sync`
+Los tres repasos que mueven el sistema, si hace falta lanzarlos a mano:
+
+```bash
+docker compose exec app php artisan obligations:materialize --sync  # obligaciones
+docker compose exec app php artisan notifications:sla --sync        # avisos y escalamiento
+docker compose exec app php artisan kpi:recalculate --sync          # KPI del panel
+```
+
+En marcha normal los ejecuta el contenedor `scheduler` cada hora (a las :00,
+:10 y :20). Las exportaciones van por la cola `reports`, que atiende Horizon.
+
+- Correo de desarrollo (Mailpit): http://localhost:8025
+- Bucket de evidencia (MinIO): http://localhost:9001
 
 Tras cambiar rutas, configuración o proveedores, reiniciar Octane:
 `docker compose exec app php artisan optimize:clear && docker compose restart app`
