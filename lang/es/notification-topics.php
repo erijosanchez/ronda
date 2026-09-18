@@ -11,4 +11,5 @@ return [
     'review_overdue' => 'Revisión atrasada',
     'submission_approved' => 'Envío aprobado',
     'submission_rejected' => 'Envío rechazado',
+    'export_ready' => 'Exportación',
 ];

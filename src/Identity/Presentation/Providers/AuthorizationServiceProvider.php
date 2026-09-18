@@ -19,7 +19,9 @@ use Ronda\Forms\Domain\Models\Template;
 use Ronda\Identity\Application\Policies\OwnerGate;
 use Ronda\Identity\Application\Policies\UserPolicy;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Insights\Application\Policies\ExportPolicy;
 use Ronda\Insights\Application\Policies\ReportPolicy;
+use Ronda\Insights\Domain\Models\Export;
 use Ronda\Scheduling\Application\Policies\SchedulePolicy;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Scheduling\Domain\Models\Schedule;
@@ -50,6 +52,7 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
         Obligation::class => ObligationPolicy::class,
         Submission::class => SubmissionPolicy::class,
         Attachment::class => AttachmentPolicy::class,
+        Export::class => ExportPolicy::class,
     ];
 
     public function boot(): void

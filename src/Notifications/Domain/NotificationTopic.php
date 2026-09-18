@@ -28,6 +28,9 @@ enum NotificationTopic: string
 
     case SubmissionRejected = 'submission_rejected';
 
+    /** Termino (o fallo) una exportacion encargada. */
+    case ExportReady = 'export_ready';
+
     public function label(): string
     {
         return __('notification-topics.'.$this->value);

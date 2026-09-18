@@ -9,4 +9,5 @@ return [
     'review_overdue' => 'Overdue review',
     'submission_approved' => 'Submission approved',
     'submission_rejected' => 'Submission rejected',
+    'export_ready' => 'Export',
 ];

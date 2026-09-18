@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Ronda\Insights\Presentation\Console\RecalculateKpisCommand;
 use Ronda\Insights\Presentation\Livewire\Dashboard;
+use Ronda\Insights\Presentation\Livewire\ExportList;
 
 /**
  * Registra lo que el modulo Insights aporta al contenedor.
@@ -27,6 +28,7 @@ final class InsightsServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../Views', 'insights');
 
         Livewire::component('insights.dashboard', Dashboard::class);
+        Livewire::component('insights.export-list', ExportList::class);
 
         if ($this->app->runningInConsole()) {
             $this->commands([RecalculateKpisCommand::class]);

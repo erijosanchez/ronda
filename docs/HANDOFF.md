@@ -1,4 +1,4 @@
-# Dónde nos quedamos — 20 de septiembre de 2026
+# Dónde nos quedamos — 21 de septiembre de 2026
 
 Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo de punta a
 punta: se programa, se entrega con evidencia, se revisa, el sistema avisa y
@@ -40,11 +40,39 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Workflow` | Revisión: tomar, aprobar, rechazar, corregir; historial, comentarios y revisiones anteriores | `/revision`, `/envios/{id}/corregir` |
 | `Notifications` | Recordatorios, escalamiento por SLA, campana in-app y correo | `/notificaciones` |
 | `Evidence` | Fotos, archivos y firma en bucket privado; SHA-256, EXIF, distancia a la sede, URL firmada | `/evidencia/{id}` (firmada) |
-| `Insights` | KPI materializados: cumplimiento, puntualidad, calidad, tiempo de revisión, ranking y reincidencia | `/panel` |
+| `Insights` | KPI materializados y exportación de envíos a Excel, en cola | `/panel`, `/exportaciones` |
 
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### `Insights` — exportación de envíos (§13)
+
+- **Nunca en la petición**: pedirla solo anota el encargo y encola el trabajo.
+  El archivo lo escribe un job y quien lo pidió recibe un aviso al terminar
+  (también si falla, con el motivo).
+- **Cola propia `reports`** (§13: colas separadas por criticidad), con
+  `config/horizon.php` publicado y un supervisor aparte: memoria más alta,
+  `timeout` de 15 minutos y prioridad de CPU más baja. Una exportación pesada no
+  puede retrasar un aviso de SLA.
+- **Streaming de punta a punta** con `openspout` (no `maatwebsite/excel`: para
+  una hoja tabular es un envoltorio de más): la consulta se recorre por lotes y
+  el XLSX se escribe según llegan las filas. Primero a un archivo temporal, y al
+  bucket solo al final: un archivo a medias en el bucket parece terminado.
+- **La frontera por sede se congela al encargarla.** El job corre sin sesión, así
+  que las sedes visibles se guardan en los filtros. De paso, un cambio de
+  permisos entre el encargo y la ejecución no ensancha lo exportado.
+- Columnas fijas (día de la obligación, sede, plantilla, versión, estado,
+  puntualidad, autor, revisor, decisión) y, **si se filtra por una plantilla**,
+  sus campos reportables como columnas. Sin filtro no se mezclan: dos plantillas
+  no comparten campos.
+- **Solo la descarga quien la pidió**, y el archivo sale por la aplicación, no
+  por una URL del bucket.
+- Sondeado quitando la frontera congelada, el dueño de la descarga y la cola
+  aparte.
+- **Ojo en pruebas:** con `Queue::fake()`, `dispatch_sync` también se intercepta
+  (Laravel lo manda a la conexión `sync`, que está fingida) y el job no corre.
+  Las pruebas llaman a `handle` por el contenedor.
 
 ### `Forms` — el catálogo de arranque (§3.5)
 
@@ -359,9 +387,10 @@ cada sede.
 ## Puntos abiertos (ninguno bloquea)
 
 - **Insights, pendiente:** gráficos de evolución (hoy son tablas y cifras),
-  exportación a Excel/PDF (§13 la quiere en cola), `kpi_weekly`/`kpi_monthly` si
-  el volumen lo pide, puntaje compuesto del ranking y KPI por zona (hoy por sede
-  y plantilla).
+  exportación a **PDF** (la de Excel ya está) e informes programados por correo,
+  `kpi_weekly`/`kpi_monthly` si el volumen lo pide, puntaje compuesto del
+  ranking y KPI por zona (hoy por sede y plantilla). La exportación tampoco
+  tiene todavía límite por plan ni purga de archivos viejos.
 - **Notifications, pendiente:** WhatsApp (§5.2; el trámite con Meta es del
   plan de fase 1), preferencias por persona y por tema (hoy los canales son del
   sistema), plazos de SLA por plantilla (`sla_policies`) en vez de una escalera
