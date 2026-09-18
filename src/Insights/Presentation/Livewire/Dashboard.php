@@ -4,30 +4,102 @@ declare(strict_types=1);
 
 namespace Ronda\Insights\Presentation\Livewire;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Url;
 use Livewire\Component;
+use Livewire\WithPagination;
+use Ronda\Directory\Domain\Models\Site;
+use Ronda\Forms\Domain\Models\Template;
 use Ronda\Identity\Domain\RoleName;
+use Ronda\Insights\Application\Data\KpiFilter;
+use Ronda\Insights\Application\Queries\KpiSummaryQuery;
+use Ronda\Insights\Application\Queries\RepeatOffendersQuery;
+use Ronda\Insights\Application\Queries\SiteRankingQuery;
+use Ronda\Insights\Domain\ValueObjects\KpiSummary;
 
 /**
- * Pantalla de aterrizaje tras iniciar sesion.
- * RONDA-PLAN-MAESTRO.md sec. 9.6
+ * El panel: donde se aterriza y donde se mide.
+ * RONDA-PLAN-MAESTRO.md sec. 9.6 y 13
  *
- * De momento solo confirma quien eres, en que cliente estas y con que roles.
- * Los KPI llegan con los modulos que producen los datos: sin envios ni sedes
- * no hay nada que medir, y un tablero con cifras inventadas es peor que uno
- * vacio.
+ * Lee SOLO de `kpi_daily`, que materializa el job: ninguna pantalla agrega
+ * sobre la tabla de envios en tiempo real.
+ *
+ * Quien no puede ver reportes (un encargado de local) sigue viendo su
+ * bienvenida y sus accesos: el panel no es un muro.
  */
 final class Dashboard extends Component
 {
+    use WithPagination;
+
+    /** Periodos que se ofrecen, en dias. */
+    private const array PERIODS = [7, 30, 90];
+
+    /** A partir de cuantos incumplimientos de la misma plantilla hay reincidencia. */
+    private const int REPEAT_THRESHOLD = 3;
+
+    #[Url(except: 30)]
+    public int $days = 30;
+
+    #[Url(except: '')]
+    public string $siteId = '';
+
+    #[Url(except: '')]
+    public string $templateId = '';
+
+    public function updated(string $property): void
+    {
+        if (in_array($property, ['days', 'siteId', 'templateId'], true)) {
+            $this->resetPage('ranking');
+        }
+    }
+
     public function render(): View
     {
-        $user = auth()->user();
+        $puedeVer = auth()->user()?->can('view-reports') ?? false;
+
+        if (! $puedeVer) {
+            return view('insights::dashboard', [
+                'showKpis' => false,
+                'userName' => (string) auth()->user()?->name,
+                'tenantName' => (string) tenant('name'),
+                'roles' => $this->roleLabels(),
+            ]);
+        }
+
+        $filtro = $this->filter();
 
         return view('insights::dashboard', [
-            'userName' => (string) $user?->name,
+            'showKpis' => true,
+            'userName' => (string) auth()->user()?->name,
             'tenantName' => (string) tenant('name'),
             'roles' => $this->roleLabels(),
+            'periods' => self::PERIODS,
+            'summary' => resolve(KpiSummaryQuery::class)($filtro),
+            'ranking' => resolve(SiteRankingQuery::class)($filtro),
+            'repeatOffenders' => resolve(RepeatOffendersQuery::class)($filtro, self::REPEAT_THRESHOLD),
+            'repeatThreshold' => self::REPEAT_THRESHOLD,
+            'sites' => Site::query()->orderBy('name')->get(['id', 'name']),
+            'templates' => Template::query()->orderBy('name')->get(['id', 'name']),
+            'from' => $filtro->from,
+            'to' => $filtro->to,
+            'emptySummary' => new KpiSummary,
         ]);
+    }
+
+    private function filter(): KpiFilter
+    {
+        $dias = in_array($this->days, self::PERIODS, true) ? $this->days : 30;
+        $hoy = CarbonImmutable::now('UTC');
+
+        return new KpiFilter(
+            // El periodo termina hoy: el dia en curso cuenta con lo que ya se
+            // sabe de el, y el job lo recalcula cada hora.
+            from: $hoy->subDays($dias - 1)->toDateString(),
+            to: $hoy->toDateString(),
+            siteId: $this->siteId === '' ? null : (int) $this->siteId,
+            templateId: $this->templateId === '' ? null : (int) $this->templateId,
+        );
     }
 
     /**

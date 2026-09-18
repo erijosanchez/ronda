@@ -6,6 +6,7 @@ namespace Ronda\Insights\Presentation\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use Ronda\Insights\Presentation\Console\RecalculateKpisCommand;
 use Ronda\Insights\Presentation\Livewire\Dashboard;
 
 /**
@@ -26,5 +27,9 @@ final class InsightsServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../Views', 'insights');
 
         Livewire::component('insights.dashboard', Dashboard::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([RecalculateKpisCommand::class]);
+        }
     }
 }

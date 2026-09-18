@@ -1,8 +1,8 @@
-# Dónde nos quedamos — 18 de septiembre de 2026
+# Dónde nos quedamos — 19 de septiembre de 2026
 
-Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo salvo los
-KPI: se programa, se entrega con evidencia, se revisa
-y el sistema avisa y escala solo**.
+Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo de punta a
+punta: se programa, se entrega con evidencia, se revisa, el sistema avisa y
+escala solo, y el panel mide**.
 El plan completo está en `../../RONDA-PLAN-MAESTRO.md`, documento interno que
 no forma parte de este repositorio (el repositorio es público).
 
@@ -14,10 +14,11 @@ Se diseñan plantillas, se programan **desde la pantalla**, el motor materializa
 las obligaciones, y el encargado ve su lista de pendientes de hoy y entrega el
 reporte **con fotos, archivos y firma**, que cumple la obligación. El
 supervisor lo **aprueba o lo rechaza** con motivo, y la sede lo corrige. Por el
-camino el sistema **recuerda, avisa y escala** solo. Lo que falta es **medir**.
+camino el sistema **recuerda, avisa y escala** solo, y el panel **mide** el
+cumplimiento, la puntualidad, la calidad y el tiempo de revisión.
 
 ```
-PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO ✅ → KPI
+PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO ✅ → KPI ✅
 ```
 
 ---
@@ -39,11 +40,42 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Workflow` | Revisión: tomar, aprobar, rechazar, corregir; historial, comentarios y revisiones anteriores | `/revision`, `/envios/{id}/corregir` |
 | `Notifications` | Recordatorios, escalamiento por SLA, campana in-app y correo | `/notificaciones` |
 | `Evidence` | Fotos, archivos y firma en bucket privado; SHA-256, EXIF, distancia a la sede, URL firmada | `/evidencia/{id}` (firmada) |
-| `Insights` | Panel de aterrizaje | `/panel` |
+| `Insights` | KPI materializados: cumplimiento, puntualidad, calidad, tiempo de revisión, ranking y reincidencia | `/panel` |
 
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### `Insights` — los KPI (§9.6)
+
+- **Tabla `kpi_daily`**, materializada por job: día de la sede × sede ×
+  plantilla. **Ninguna pantalla agrega sobre `submissions` en tiempo real**
+  (§13); el panel solo suma filas ya calculadas.
+- **Se recalcula, no se acumula**: una aprobación, una corrección o una
+  justificación cambian cifras de días ya cerrados. El job repasa una ventana de
+  7 días cada hora (`kpi:recalculate`, a las :20) y borrar + reescribir el rango
+  en una transacción es idempotente.
+- **Cuatro indicadores** en `KpiSummary` (puro y probado aparte):
+  cumplimiento `fulfilled / (fulfilled + missed)` — lo **justificado no cuenta**,
+  ni a favor ni en contra—, puntualidad (y minutos de retraso promedio **solo
+  sobre lo tardío**), calidad (aprobado a la primera sobre lo ya decidido) y
+  tiempo de revisión.
+- **Un indicador sin base es `null`, no cero**, y la pantalla lo pinta con un
+  guion: «no había nada que medir» y «se incumplió todo» no son lo mismo.
+- **Ranking de sedes por el peor cumplimiento primero** y **reincidencia** (misma
+  sede, misma plantilla, 3 o más incumplimientos en el periodo).
+- **Frontera por sede** dentro de la consulta base: un supervisor ve solo sus
+  sedes; quien no tiene `report.view` sigue viendo la bienvenida y su acceso a
+  pendientes, no un muro.
+- Los envíos se atribuyen **al día de la obligación**, no al día en que se
+  entregaron: un arqueo del martes entregado a las 00:10 del miércoles sigue
+  siendo del martes.
+- **Desviaciones del plan**, documentadas en la migración: no hay `kpi_weekly`
+  ni `kpi_monthly` (una semana es una suma de filas con índice), y el tiempo de
+  revisión se guarda como suma y cuenta en vez de mediana, porque una mediana no
+  se puede sumar entre días.
+- Sondeado quitando: los justificados fuera del cumplimiento, la frontera por
+  sede, el borrado previo al recálculo y el «a la primera».
 
 ### `Notifications` — recordatorios y escalamiento (§9.3 y §9.4)
 
@@ -279,6 +311,10 @@ cada sede.
 
 ## Puntos abiertos (ninguno bloquea)
 
+- **Insights, pendiente:** gráficos de evolución (hoy son tablas y cifras),
+  exportación a Excel/PDF (§13 la quiere en cola), `kpi_weekly`/`kpi_monthly` si
+  el volumen lo pide, puntaje compuesto del ranking y KPI por zona (hoy por sede
+  y plantilla).
 - **Notifications, pendiente:** WhatsApp (§5.2; el trámite con Meta es del
   plan de fase 1), preferencias por persona y por tema (hoy los canales son del
   sistema), plazos de SLA por plantilla (`sla_policies`) en vez de una escalera
@@ -319,7 +355,7 @@ cada sede.
 2. ~~`Evidence`.~~ Hecho (con los pendientes de arriba).
 3. ~~`Workflow`.~~ Hecho (con los pendientes de arriba).
 4. ~~`Notifications`.~~ Hecho (con los pendientes de arriba).
-5. **`Insights`** — KPI de cumplimiento: `fulfilled / (fulfilled + missed)`.
+5. ~~`Insights`.~~ Hecho (con los pendientes de arriba).
 6. **`Api`**, Sentry/Pulse, provisión asíncrona con progreso.
 
 ---
