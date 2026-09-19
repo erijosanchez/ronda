@@ -18,6 +18,13 @@ use Illuminate\Support\Facades\Route;
 
 Route::view('/', 'welcome')->name('home');
 
+/*
+ | Alta de clientes nuevos. Es publica por definicion, y por eso es la unica
+ | que vive fuera del grupo de abajo: sus dos rutas estan justificadas una por
+ | una en la lista blanca de RouteProtectionTest.
+ */
+require __DIR__.'/../src/Platform/Presentation/routes-central.php';
+
 Route::middleware(['auth'])->group(function (): void {
     // Los modulos registran aqui sus rutas centrales conforme se construyan.
 });

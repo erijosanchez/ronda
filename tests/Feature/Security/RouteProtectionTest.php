@@ -31,6 +31,14 @@ $publicRoutes = [
     'reset-password',
     'reset-password/{token}',
     'two-factor-challenge',
+
+    // Alta self-service (sec. 15.3). Quien se registra no tiene cuenta todavia,
+    // asi que no puede haber sesion que exigir. Ninguna de las dos lee datos de
+    // un cliente: la primera es un formulario vacio y la segunda solo responde
+    // «ya esta lista» sobre un ULID que no se adivina.
+    'registro',
+    'registro/{tenant}/preparando',
+
     'sanctum/csrf-cookie',
     'storage/{path}',
 ];

@@ -46,6 +46,7 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
             'slug',
             'status',
             'trial_ends_at',
+            'provisioned_at',
         ];
     }
 
@@ -67,11 +68,22 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
     /**
      * @return array<string, string>
      */
+    /**
+     * Si ya se puede entrar: la base existe, esta migrada, sembrada y el
+     * propietario creado (sec. 15.3). Entre el registro y esto pasan unos
+     * segundos, y la pantalla de espera pregunta por aqui.
+     */
+    public function isReady(): bool
+    {
+        return $this->provisioned_at !== null;
+    }
+
     protected function casts(): array
     {
         return [
             'status' => TenantStatus::class,
             'trial_ends_at' => 'datetime',
+            'provisioned_at' => 'datetime',
             'data' => 'array',
         ];
     }

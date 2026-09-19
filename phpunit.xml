@@ -67,6 +67,11 @@
         <env name="DB_HOST" value="postgres" force="true"/>
         <env name="DB_PORT" value="5432" force="true"/>
         <env name="FILESYSTEM_DISK" value="local" force="true"/>
+        <!-- La comprobacion contra filtraciones conocidas (Password::uncompromised)
+             sale a Internet en cada validacion de contrasena. En produccion es
+             obligatoria; en las pruebas la apaga para que no dependan de la red
+             ni tarden un viaje de ida y vuelta por cada alta. -->
+        <env name="PASSWORD_CHECK_COMPROMISED" value="false" force="true"/>
 
 
         <!-- Las mismas claves como <server>. PHP en CLI copia el entorno
@@ -90,5 +95,6 @@
         <server name="DB_HOST" value="postgres" force="true"/>
         <server name="DB_PORT" value="5432" force="true"/>
         <server name="FILESYSTEM_DISK" value="local" force="true"/>
+        <server name="PASSWORD_CHECK_COMPROMISED" value="false" force="true"/>
     </php>
 </phpunit>

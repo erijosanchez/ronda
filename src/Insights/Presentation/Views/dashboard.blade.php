@@ -23,6 +23,27 @@
         @endif
     </div>
 
+    {{-- Mientras la cuenta esta a medio montar, lo primero que se ve es lo que
+         falta. Desaparece solo en cuanto los cinco pasos estan hechos. --}}
+    @if ($onboarding !== null)
+        <flux:callout icon="rocket-launch">
+            <flux:callout.heading>
+                {{ __('Your account is not running yet') }}
+            </flux:callout.heading>
+            <flux:callout.text>
+                {{ __(':done of :total steps done. The next one takes a couple of minutes.', [
+                    'done' => $onboarding->done(),
+                    'total' => $onboarding->total(),
+                ]) }}
+            </flux:callout.text>
+            <x-slot name="actions">
+                <flux:button size="sm" variant="primary" :href="route('onboarding')" wire:navigate>
+                    {{ __('Continue setup') }}
+                </flux:button>
+            </x-slot>
+        </flux:callout>
+    @endif
+
     @if (! $showKpis)
         <flux:separator />
 
