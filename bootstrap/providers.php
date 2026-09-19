@@ -14,6 +14,7 @@ use Ronda\Insights\Presentation\Providers\InsightsServiceProvider;
 use Ronda\Notifications\Infrastructure\Providers\NotificationsEventServiceProvider;
 use Ronda\Notifications\Presentation\Providers\NotificationsServiceProvider;
 use Ronda\Platform\Infrastructure\Providers\PlatformEventServiceProvider;
+use Ronda\Platform\Infrastructure\Providers\PlatformFeatureServiceProvider;
 use Ronda\Platform\Presentation\Providers\PlatformServiceProvider;
 use Ronda\Scheduling\Presentation\Providers\SchedulingServiceProvider;
 use Ronda\Submissions\Presentation\Providers\SubmissionsServiceProvider;
@@ -24,6 +25,7 @@ return [
     TenancyServiceProvider::class,
     PlatformServiceProvider::class,
     PlatformEventServiceProvider::class,
+    PlatformFeatureServiceProvider::class,
     AuthorizationServiceProvider::class,
     FortifyServiceProvider::class,
     IdentityServiceProvider::class,

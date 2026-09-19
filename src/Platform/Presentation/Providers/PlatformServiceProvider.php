@@ -6,6 +6,7 @@ namespace Ronda\Platform\Presentation\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use Ronda\Platform\Presentation\Livewire\PlanAndUsage;
 use Ronda\Platform\Presentation\Livewire\RegisterForm;
 use Ronda\Platform\Presentation\Livewire\StartWizard;
 use Ronda\Platform\Presentation\Livewire\TenantProvisioning;
@@ -25,5 +26,6 @@ final class PlatformServiceProvider extends ServiceProvider
         Livewire::component('platform.register-form', RegisterForm::class);
         Livewire::component('platform.tenant-provisioning', TenantProvisioning::class);
         Livewire::component('platform.start-wizard', StartWizard::class);
+        Livewire::component('platform.plan-and-usage', PlanAndUsage::class);
     }
 }

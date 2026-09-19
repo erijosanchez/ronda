@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ronda\Platform\Domain\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Ronda\Platform\Domain\States\TenantStatus;
 use RuntimeException;
 use Spatie\ModelStates\HasStates;
@@ -45,6 +46,7 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
             'name',
             'slug',
             'status',
+            'plan_id',
             'trial_ends_at',
             'provisioned_at',
         ];
@@ -66,9 +68,6 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
     }
 
     /**
-     * @return array<string, string>
-     */
-    /**
      * Si ya se puede entrar: la base existe, esta migrada, sembrada y el
      * propietario creado (sec. 15.3). Entre el registro y esto pasan unos
      * segundos, y la pantalla de espera pregunta por aqui.
@@ -78,6 +77,20 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
         return $this->provisioned_at !== null;
     }
 
+    /**
+     * El plan contratado, o null mientras el cliente esta en prueba y no ha
+     * elegido ninguno (sec. 8.2).
+     *
+     * @return BelongsTo<Plan, $this>
+     */
+    public function plan(): BelongsTo
+    {
+        return $this->belongsTo(Plan::class);
+    }
+
+    /**
+     * @return array<string, string>
+     */
     protected function casts(): array
     {
         return [
