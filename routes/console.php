@@ -46,3 +46,18 @@ Schedule::command('kpi:recalculate')
     ->hourlyAt(20)
     ->withoutOverlapping()
     ->onOneServer();
+
+// Facturacion (sec. 15.1): emite el cobro de los periodos vencidos y reintenta
+// los rechazados.
+//
+// Una vez al dia y de madrugada, no cada hora: un cobro no gana nada por
+// intentarse antes, y un rechazo tiene su propio calendario de reintentos. La
+// hora esta elegida para que un fallo se vea por la manana con tiempo de
+// arreglarlo, no un viernes a las seis.
+//
+// Es idempotente: la factura de un periodo tiene clave unica en la base, asi
+// que un doble disparo no cobra dos veces.
+Schedule::command('billing:renew')
+    ->dailyAt('05:30')
+    ->withoutOverlapping()
+    ->onOneServer();

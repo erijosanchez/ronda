@@ -7,8 +7,10 @@ namespace Ronda\Platform\Presentation\Livewire;
 use Illuminate\Contracts\View\View;
 use Livewire\Component;
 use Ronda\Platform\Application\Queries\PlanUsageQuery;
+use Ronda\Platform\Domain\Billing\SubscriptionStatus;
 use Ronda\Platform\Domain\Contracts\PlanProvider;
 use Ronda\Platform\Domain\Models\Plan;
+use Ronda\Platform\Domain\Models\Subscription;
 use Ronda\Platform\Domain\PlanFeature;
 
 /**
@@ -33,8 +35,17 @@ final class PlanAndUsage extends Component
         $limits = $planProvider->limits();
         $consumo = $usage();
 
+        // La suscripcion y los cobros viven en la base CENTRAL, asi que se
+        // preguntan por el id del cliente y no por la conexion en curso.
+        $suscripcion = Subscription::query()->where('tenant_id', tenant('id'))->first();
+
         return view('platform::plan', [
             'plan' => $plan,
+            'subscription' => $suscripcion,
+            'pastDue' => $suscripcion?->status === SubscriptionStatus::PastDue,
+            'invoices' => $suscripcion instanceof Subscription
+                ? $suscripcion->invoices()->orderByDesc('period_start')->limit(12)->get()
+                : collect(),
             'limits' => $limits,
             'usage' => $consumo,
             'monthly' => $plan instanceof Plan ? $plan->monthlyPriceFor($consumo->sites) : null,

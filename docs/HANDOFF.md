@@ -37,12 +37,16 @@ asistente que la lleva de cero al primer reporte.
 **Los planes y los límites están puestos** (§3.6): tres planes en la central,
 el límite aplicado en la Action y una pantalla `/plan` con el consumo.
 
-**Siguiente: facturación** — `BillingGateway` con Stripe y pasarela local
-(§15.2), suscripciones, comprobantes y corte por prueba vencida. Después el
-back-office con suplantación auditada y el sitio público. La API es fase 3.
+**La facturación está construida y esperando llaves** (§15.1, §15.2):
+suscripciones, periodos, cobros, reintentos y una pantalla con el historial.
+Corre en modo `manual` (se emite, no se cobra) hasta que haya cuenta de
+comercio. **Pasarela elegida: Culqi**; ver `docs/facturacion.md`.
+
+**Siguiente: back-office de Ronda** con suplantación auditada (§15.4), y el
+sitio público con precios. La API es fase 3.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
-fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~45 %**, fases 3 a 5 sin
+fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~60 %**, fases 3 a 5 sin
 empezar. Para tener un piloto operando falta poco; para vender solo, bastante
 más, y casi todo lo que falta ahí no es código.
 
@@ -60,7 +64,7 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 
 | Módulo | Qué hace | Pantallas |
 |---|---|---|
-| `Platform` | Provisión de tenant con base propia, aislamiento de sesión, registro self-service, asistente de arranque, planes y límites | `/registro` (central), `/bienvenida`, `/plan` |
+| `Platform` | Provisión de tenant, aislamiento de sesión, registro self-service, asistente de arranque, planes, límites y facturación | `/registro` (central), `/bienvenida`, `/plan` |
 | `Identity` | Usuarios, roles, permisos, 2FA, invariantes del propietario | `/usuarios` |
 | `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/zonas`, `/cargos`, `/usuarios/{id}/sedes` |
 | `Forms` | Plantillas versionadas, diseñador visual, publicación, catálogo de arranque | `/plantillas`, `/plantillas/catalogo` |
@@ -74,6 +78,39 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### Facturación, lista para encenderse (§15.1, §15.2)
+
+Todo el cobro está construido y probado. Lo único que falta es la cuenta de
+comercio: poner dos llaves en el `.env` y cambiar `BILLING_GATEWAY=culqi`.
+El paso a paso está en **`docs/facturacion.md`**.
+
+- **Pasarela elegida: Culqi**, por recurrencia y por SDK: tiene API de tarjetas
+  guardadas y paquete oficial para PHP y Laravel. Izipay tiene mejor tasa de
+  aprobación y Niubiz negocia tasa por volumen; las dos se vuelven interesantes
+  con volumen, y para entonces es un adaptador más.
+- **No se usan los objetos «plan» ni «suscripción» de la pasarela.** El precio
+  de Ronda es por sede activa, así que el importe cambia cada periodo: una
+  suscripción de monto fijo cobraría la foto del día que se creó. Quien decide
+  cuánto se cobra es Ronda; la pasarela solo ejecuta. Eso deja el contrato en
+  dos métodos —guardar tarjeta y cobrar— y la hace intercambiable.
+- **`subscriptions` e `invoices` en la central.** El precio y el mínimo de sedes
+  se copian del plan al contratar: una subida de tarifa no alcanza a quien ya
+  firmó. Cada factura guarda de dónde sale el número (sedes, precio, meses).
+- **Un periodo no se puede cobrar dos veces**: `(suscripción, inicio de periodo)`
+  es único en la base. La idempotencia no depende de que el comando corra bien.
+- **Un rechazo no es un impago**: se reintenta a los 3 y a los 7 días, y solo
+  cuando se agotan los intentos el cliente pasa a `past_due`.
+- **Quien paga por transferencia no se marca moroso**: sin tarjeta guardada la
+  factura queda pendiente de conciliar, y nadie le corta el servicio.
+- **Nuevo salto de estado `trial → past_due`**: una prueba que termina y cuyo
+  primer cobro falla es un cliente en mora. Pasarlo antes por `active` lo daría
+  por convertido sin haber cobrado nunca.
+- **El dinero nunca es `float`**: `Money` hace las cuentas con bcmath y manda a
+  la pasarela céntimos enteros. `29.99 × 7` da `209.93`, no `209.92999…`.
+- **Pendiente para cuando haya cuenta:** el formulario de tarjeta (Culqi.js
+  necesita una llave pública real), el webhook (hace falta para Yape y
+  PagoEfectivo, no para tarjeta) y el PSE de comprobantes SUNAT.
 
 ### Planes y límites (§3.6, §15.1)
 

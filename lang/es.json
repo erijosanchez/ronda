@@ -477,5 +477,22 @@
     "Not in this plan": "No está en este plan",
     "To change plan, write to us. Self-service upgrades arrive with billing.": "Para cambiar de plan, escríbenos. El cambio por tu cuenta llega con la facturación.",
     "Your plan allows :limit templates. Retire one or move up a plan.": "Tu plan permite :limit plantillas. Da de baja una o sube de plan.",
-    "This branch filled the :gb GB of evidence its plan gives it. Tell whoever administers the account.": "Esta sede llenó los :gb GB de evidencia que le da su plan. Avisa a quien administra la cuenta."
+    "This branch filled the :gb GB of evidence its plan gives it. Tell whoever administers the account.": "Esta sede llenó los :gb GB de evidencia que le da su plan. Avisa a quien administra la cuenta.",
+    "Billing": "Cobros",
+    "Monthly": "Mensual",
+    "Yearly": "Anual",
+    "Trial": "En prueba",
+    "Up to date": "Al día",
+    "Payment failed": "Cobro rechazado",
+    "Canceled": "Cancelada",
+    "Paid": "Pagado",
+    "Failed": "Rechazado",
+    "Void": "Anulado",
+    "Amount": "Importe",
+    "Your trial runs until :date. No card needed until then.": "Tu prueba va hasta el :date. Hasta entonces no hace falta tarjeta.",
+    "Next charge on :date, :cycle.": "Próximo cobro el :date, :cycle.",
+    "Payment is arranged by transfer for now. We will let you know when you can pay by card from here.": "Por ahora el pago se coordina por transferencia. Te avisamos cuando puedas pagar con tarjeta desde aquí.",
+    "Manual payment: waiting for the transfer to be confirmed.": "Pago manual: esperando que se confirme la transferencia.",
+    "The card was declined.": "La tarjeta fue rechazada.",
+    "Ronda · :period": "Ronda · :period"
 }
