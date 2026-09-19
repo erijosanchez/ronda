@@ -24,6 +24,10 @@ final class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
+        // Los planes no son datos de desarrollo: sin ellos no hay limites que
+        // aplicar. Van antes del corte de produccion y son idempotentes.
+        $this->call(PlanSeeder::class);
+
         if (app()->isProduction()) {
             $this->command?->warn('DatabaseSeeder solo siembra datos de desarrollo. Omitido en produccion.');
 

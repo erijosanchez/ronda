@@ -11,6 +11,7 @@ use Ronda\Forms\Domain\CatalogTemplate;
 use Ronda\Forms\Domain\Exceptions\InvalidFormSchema;
 use Ronda\Forms\Domain\Models\Template;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Platform\Domain\Exceptions\PlanLimitExceeded;
 
 /**
  * El catalogo de arranque. RONDA-PLAN-MAESTRO.md sec. 3.5
@@ -45,6 +46,14 @@ final class TemplateCatalog extends Component
             resolve(InstallCatalogTemplate::class)($catalogo, $publisher);
         } catch (InvalidFormSchema $e) {
             $this->addError('catalog', $e->getMessage());
+
+            return;
+        } catch (PlanLimitExceeded $e) {
+            // Llegar al limite no es un error del cliente: es una conversacion
+            // comercial, y se le dice con el numero exacto de su plan.
+            $this->addError('catalog', __('Your plan allows :limit templates. Retire one or move up a plan.', [
+                'limit' => $e->limitValue,
+            ]));
 
             return;
         }

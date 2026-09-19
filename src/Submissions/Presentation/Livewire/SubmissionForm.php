@@ -11,6 +11,7 @@ use Ronda\Forms\Domain\ValueObjects\Field;
 use Ronda\Forms\Domain\ValueObjects\FormSchema;
 use Ronda\Forms\Domain\ValueObjects\VisibilityCondition;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Platform\Domain\Exceptions\PlanLimitExceeded;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Submissions\Application\Actions\SubmitReport;
 use Ronda\Submissions\Domain\Exceptions\CannotSubmit;
@@ -72,6 +73,14 @@ final class SubmissionForm extends Component
             return;
         } catch (CannotSubmit $e) {
             $this->addError('obligation', $e->getMessage());
+
+            return;
+        } catch (PlanLimitExceeded $e) {
+            // Se queda sin espacio la SEDE, no la persona que entrega. Decirlo
+            // asi evita que el encargado crea que hizo algo mal.
+            $this->addError('obligation', __('This branch filled the :gb GB of evidence its plan gives it. Tell whoever administers the account.', [
+                'gb' => $e->limitValue,
+            ]));
 
             return;
         }

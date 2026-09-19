@@ -17,6 +17,8 @@ use Ronda\Evidence\Domain\Services\ImageSanitizer;
 use Ronda\Evidence\Domain\ValueObjects\GeoPoint;
 use Ronda\Evidence\Domain\ValueObjects\ImageMetadata;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Platform\Domain\Contracts\PlanProvider;
+use Ronda\Platform\Domain\Exceptions\PlanLimitExceeded;
 use Ronda\Submissions\Domain\Models\Submission;
 use Throwable;
 
@@ -56,6 +58,7 @@ final readonly class StoreEvidence
         private FilesystemManager $filesystem,
         private ExifReader $exif,
         private ImageSanitizer $sanitizer,
+        private PlanProvider $plan,
     ) {}
 
     public function __invoke(
@@ -74,6 +77,10 @@ final readonly class StoreEvidence
         $contenido = $kind->isImage($mime)
             ? $this->sanitizer->sanitize($upload->contents, $mime, $metadata->orientation)
             : $upload->contents;
+
+        // Antes de escribir nada en el bucket: rechazar despues de subir
+        // dejaria el archivo ocupando espacio que el plan ya no cubre.
+        $this->guardStorage((int) $submission->site_id, strlen($contenido));
 
         [$ubicacion, $origen] = $this->location($metadata, $upload);
 
@@ -110,6 +117,36 @@ final readonly class StoreEvidence
             $disco->delete($ruta);
 
             throw $e;
+        }
+    }
+
+    /**
+     * El espacio que el plan da POR SEDE (sec. 3.6): 1 GB en Starter, 5 en Pro.
+     *
+     * Se cuenta por sede y no por cliente porque asi se vende —el precio es por
+     * sede activa—, y porque una sede que se pasa no puede dejar sin espacio a
+     * las demas.
+     *
+     * Es una suma indexada por subida. Cuando el volumen lo pida, este numero
+     * sale de `usage_metrics` en vez de recalcularse.
+     *
+     * @throws PlanLimitExceeded
+     */
+    private function guardStorage(int $siteId, int $incomingBytes): void
+    {
+        $limits = $this->plan->limits();
+
+        if ($limits->storageGbPerSite === null) {
+            return;
+        }
+
+        $usados = (int) Attachment::query()
+            ->join('submissions', 'submissions.id', '=', 'attachments.submission_id')
+            ->where('submissions.site_id', $siteId)
+            ->sum('attachments.bytes');
+
+        if (! $limits->allowsMoreStorage($usados, $incomingBytes)) {
+            throw PlanLimitExceeded::storage($limits->storageGbPerSite);
         }
     }
 

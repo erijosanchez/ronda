@@ -15,6 +15,7 @@ use Ronda\Forms\Domain\Models\Template;
 use Ronda\Forms\Domain\ValueObjects\FieldType;
 use Ronda\Forms\Domain\ValueObjects\FormSchema;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Platform\Domain\Exceptions\PlanLimitExceeded;
 
 /**
  * Disenador de plantillas. RONDA-PLAN-MAESTRO.md sec. 9.2
@@ -151,12 +152,21 @@ final class TemplateDesigner extends Component
         }
 
         if (! $template instanceof Template) {
-            $template = resolve(CreateTemplate::class)(new TemplateData(
-                code: $this->code,
-                name: $this->name,
-                description: $this->description === '' ? null : $this->description,
-            ));
+            try {
+                $template = resolve(CreateTemplate::class)(new TemplateData(
+                    code: $this->code,
+                    name: $this->name,
+                    description: $this->description === '' ? null : $this->description,
+                ));
+            } catch (PlanLimitExceeded $e) {
+                // Se avisa sobre el codigo, que es el primer campo: el error
+                // no es del esquema que acaba de disenar.
+                $this->addError('code', __('Your plan allows :limit templates. Retire one or move up a plan.', [
+                    'limit' => $e->limitValue,
+                ]));
 
+                return;
+            }
         } else {
             $template->update([
                 'name' => $this->name,

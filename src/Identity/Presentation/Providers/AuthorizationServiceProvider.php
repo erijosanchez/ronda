@@ -23,6 +23,7 @@ use Ronda\Insights\Application\Policies\ExportPolicy;
 use Ronda\Insights\Application\Policies\ReportPolicy;
 use Ronda\Insights\Domain\Models\Export;
 use Ronda\Platform\Application\Policies\OnboardingPolicy;
+use Ronda\Platform\Application\Policies\PlanPolicy;
 use Ronda\Scheduling\Application\Policies\SchedulePolicy;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Scheduling\Domain\Models\Schedule;
@@ -67,6 +68,9 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
         // Poner en marcha la cuenta tampoco es un registro: es el estado del
         // cliente entero. Misma forma, misma razon.
         Gate::define('complete-onboarding', [OnboardingPolicy::class, 'complete']);
+
+        // El plan y el consumo tampoco cuelgan de un modelo: son del cliente.
+        Gate::define('view-plan', [PlanPolicy::class, 'view']);
 
         // El propietario del tenant pasa por encima de toda Policy.
         //

@@ -9,7 +9,9 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 use Ronda\Platform\Application\Data\CreateTenantData;
 use Ronda\Platform\Application\Jobs\ProvisionTenantJob;
+use Ronda\Platform\Domain\Models\Plan;
 use Ronda\Platform\Domain\Models\Tenant;
+use Ronda\Platform\Domain\PlanCode;
 
 /**
  * Da de alta un cliente en la base central y encola su provision.
@@ -40,6 +42,12 @@ final readonly class CreateTenant
             $tenant->id = (string) Str::ulid();
             $tenant->name = $data->name;
             $tenant->slug = $data->slug;
+            // Todo cliente nuevo entra en el plan de entrada (sec. 3.6). Si el
+            // catalogo no esta sembrado queda en null, que significa «sin
+            // limites»: preferible a inventar un plan que nadie contrato.
+            $tenant->plan_id = Plan::query()
+                ->where('code', PlanCode::default()->value)
+                ->value('id');
             // El estado inicial no se fija aqui: lo pone TenantStatus::config()
             // con ->default(Trial::class). Escribirlo tambien en la Action daria
             // dos sitios que decir cual es el estado de alta.

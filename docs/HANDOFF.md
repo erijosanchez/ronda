@@ -34,12 +34,15 @@ piloto (ver abajo).
 sola en `/registro`, espera mientras se provisiona su base, y entra a un
 asistente que la lleva de cero al primer reporte.
 
-**Siguiente: planes y límites** (`laravel/pennant`), y después facturación,
-back-office con suplantación auditada y sitio público. La API es fase 3 y va
-después.
+**Los planes y los límites están puestos** (§3.6): tres planes en la central,
+el límite aplicado en la Action y una pantalla `/plan` con el consumo.
+
+**Siguiente: facturación** — `BillingGateway` con Stripe y pasarela local
+(§15.2), suscripciones, comprobantes y corte por prueba vencida. Después el
+back-office con suplantación auditada y el sitio público. La API es fase 3.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
-fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~30 %**, fases 3 a 5 sin
+fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~45 %**, fases 3 a 5 sin
 empezar. Para tener un piloto operando falta poco; para vender solo, bastante
 más, y casi todo lo que falta ahí no es código.
 
@@ -57,7 +60,7 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 
 | Módulo | Qué hace | Pantallas |
 |---|---|---|
-| `Platform` | Provisión de tenant con base propia, aislamiento de sesión, registro self-service y asistente de arranque | `/registro` (central), `/bienvenida` |
+| `Platform` | Provisión de tenant con base propia, aislamiento de sesión, registro self-service, asistente de arranque, planes y límites | `/registro` (central), `/bienvenida`, `/plan` |
 | `Identity` | Usuarios, roles, permisos, 2FA, invariantes del propietario | `/usuarios` |
 | `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/zonas`, `/cargos`, `/usuarios/{id}/sedes` |
 | `Forms` | Plantillas versionadas, diseñador visual, publicación, catálogo de arranque | `/plantillas`, `/plantillas/catalogo` |
@@ -71,6 +74,41 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### Planes y límites (§3.6, §15.1)
+
+Lo que hace que el registro abierto no sea un agujero: hasta ahora cualquiera
+que se registrara tenía todo sin tope.
+
+- **Catálogo en la base central** (`plans`) con los tres planes del §3.6:
+  Starter (S/ 29 por sede, mínimo 5, 3 plantillas, 1 GB por sede), Pro (S/ 49,
+  plantillas ilimitadas, 5 GB, WhatsApp + API + flujos propios) y Enterprise
+  (cotizado, no público). Precios y límites son **datos, no código**: cambiarlos
+  es un UPDATE. `PlanSeeder` es idempotente y corre **también en producción**.
+- **Todo cliente nuevo entra en Starter**. Sin plan (`plan_id` nulo) no se corta
+  nada: es la prueba, y quién decide qué pasa al terminarla es la facturación.
+- **Los límites los aplica la Action, no la pantalla**: `CreateTemplate` (por
+  ahí pasan el diseñador, el catálogo y mañana la API) y `StoreEvidence`. Las
+  dos preguntan al contrato `PlanProvider`, que vive en el **dominio** de
+  Platform porque la regla de dependencia no deja que un módulo llame a la capa
+  de aplicación de otro.
+- **Se corta antes de escribir**: ni plantilla a medias ni archivo subido al
+  bucket que luego se rechaza.
+- **El mensaje lleva el número del plan** («tu plan permite 3 plantillas»), no
+  un «error de cuota». Llegar al límite es una conversación comercial.
+- **Pantalla `/plan`**: plan contratado, lo que se factura al mes, consumo por
+  sede con barra, y las cuatro funciones con «incluido» o «no está en este
+  plan». Solo lectura: cambiar de plan llega con la facturación.
+- **`laravel/pennant` con almacén `array`, a propósito**: las banderas se
+  derivan del plan en cada petición. Con `database`, pennant persiste el primer
+  valor resuelto y un cliente que sube a Pro seguiría apagado. Las
+  sobreescrituras por cliente del §8.2 llegan con el back-office.
+- Tres de las cuatro banderas (WhatsApp, API, SSO) gobiernan trabajo que todavía
+  no existe. Se declaran igual para que ese código nazca preguntando, en vez de
+  nacer encendido para todos.
+- **Pendiente:** `usage_metrics` (histórico diario que se factura), tope de
+  usuarios o envíos si alguna vez se decide uno, y el corte por prueba vencida,
+  que es de facturación.
 
 ### Onboarding self-service (§15.3)
 

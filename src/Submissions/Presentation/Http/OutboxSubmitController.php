@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Ronda\Evidence\Application\Data\EvidenceUpload;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Platform\Domain\Exceptions\PlanLimitExceeded;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Submissions\Application\Actions\SubmitReport;
 use Ronda\Submissions\Domain\Exceptions\CannotSubmit;
@@ -72,6 +73,15 @@ final class OutboxSubmitController extends Controller
             return response()->json(['code' => 'invalid_answers', 'errors' => $e->errors], 422);
         } catch (CannotSubmit $e) {
             return response()->json(['code' => 'cannot_submit', 'message' => $e->getMessage()], 409);
+        } catch (PlanLimitExceeded $e) {
+            // 409 y no 5xx: reintentar no lo va a arreglar, asi que la cola del
+            // telefono tiene que dejar de intentarlo y mostrar el motivo.
+            return response()->json([
+                'code' => 'plan_limit',
+                'message' => __('This branch filled the :gb GB of evidence its plan gives it. Tell whoever administers the account.', [
+                    'gb' => $e->limitValue,
+                ]),
+            ], 409);
         }
 
         return response()->json([

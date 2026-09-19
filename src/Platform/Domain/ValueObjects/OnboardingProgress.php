@@ -59,7 +59,7 @@ final readonly class OnboardingProgress
 
     public function finished(): bool
     {
-        return $this->next() === null;
+        return ! $this->next() instanceof OnboardingStep;
     }
 
     public function done(): int

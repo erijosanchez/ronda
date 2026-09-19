@@ -86,6 +86,14 @@
             <flux:navlist.item icon="users" :href="route('users.index')" :current="request()->routeIs('users.*')">
                 {{ __('Users') }}
             </flux:navlist.item>
+
+            {{-- El plan solo lo ve quien administra la cuenta: a un encargado
+                 de local no le dice nada y no puede hacer nada con ello. --}}
+            @can('view-plan')
+                <flux:navlist.item icon="credit-card" :href="route('plan')" :current="request()->routeIs('plan')">
+                    {{ __('Plan') }}
+                </flux:navlist.item>
+            @endcan
         </flux:navlist>
 
         <flux:spacer />
