@@ -30,11 +30,16 @@ señal, guarda el borrador y ahora **entrega sin red**, con la cola de envío qu
 sale sola al volver la señal. Falta verlo en un móvil de verdad antes del
 piloto (ver abajo).
 
-**Siguiente: la fase 2** — onboarding self-service, planes y límites,
-facturación, back-office y sitio público. La API es fase 3 y va después.
+**El onboarding self-service está cerrado** (§15.3): una empresa se registra
+sola en `/registro`, espera mientras se provisiona su base, y entra a un
+asistente que la lleva de cero al primer reporte.
+
+**Siguiente: planes y límites** (`laravel/pennant`), y después facturación,
+back-office con suplantación auditada y sitio público. La API es fase 3 y va
+después.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
-fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~15 %**, fases 3 a 5 sin
+fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~30 %**, fases 3 a 5 sin
 empezar. Para tener un piloto operando falta poco; para vender solo, bastante
 más, y casi todo lo que falta ahí no es código.
 
@@ -52,7 +57,7 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 
 | Módulo | Qué hace | Pantallas |
 |---|---|---|
-| `Platform` | Provisión de tenant con base propia, aislamiento de sesión | — |
+| `Platform` | Provisión de tenant con base propia, aislamiento de sesión, registro self-service y asistente de arranque | `/registro` (central), `/bienvenida` |
 | `Identity` | Usuarios, roles, permisos, 2FA, invariantes del propietario | `/usuarios` |
 | `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/zonas`, `/cargos`, `/usuarios/{id}/sedes` |
 | `Forms` | Plantillas versionadas, diseñador visual, publicación, catálogo de arranque | `/plantillas`, `/plantillas/catalogo` |
@@ -66,6 +71,43 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### Onboarding self-service (§15.3)
+
+Primera pieza de la fase 2: una empresa puede darse de alta sola y llegar a su
+primer reporte sin que nadie de Ronda toque nada.
+
+- **`/registro` en el dominio central**: nombre, subdominio, dueña y
+  contraseña. Es la única ruta pública del proyecto además de la portada y el
+  login, y está justificada una por una en la lista blanca de
+  `RouteProtectionTest`.
+- **El subdominio se decide en una Action, no en la pantalla**
+  (`RegisterTenant`): hay una lista cerrada de reservados (`www`, `api`,
+  `admin`, `ronda`…) y se comprueba que ni el slug ni el dominio completo estén
+  tomados. El alta llegará también por la API y por el back-office, y la regla
+  no puede vivir en un formulario.
+- **Límite por IP dentro del componente**, no en la ruta: el envío de un
+  formulario Livewire no pasa por `/registro`, así que un `throttle` de ruta se
+  saltaría pidiendo la página una vez. Cada alta crea una base de datos; el
+  límite es lo que impide llenar el servidor con un bucle.
+- **Pantalla de «preparando tu cuenta»** mientras corre la provisión (crear
+  base, migrar, sembrar, crear a la dueña). Pregunta por `provisioned_at`, una
+  columna **central**: desde ahí no se puede consultar una base de tenant que
+  quizá no existe todavía. La marca la pone un oyente de `TenantProvisioned`.
+- **Asistente de arranque `/bienvenida`** dentro del cliente: plantillas →
+  sedes → equipo → programaciones → primer reporte. No duplica ningún
+  formulario: lleva a las pantallas que ya existen. **El avance sale de los
+  datos** (cinco `exists()`), no de banderas guardadas, así que no hay dos
+  verdades que sincronizar. El panel lo ofrece mientras falte algo y calla
+  cuando ya está.
+- **Portada nueva** en el dominio central, en español y por `__()`, con el
+  enlace al registro. El sitio público de verdad (precios, casos) sigue
+  pendiente de la fase 2.
+- La comprobación de contraseñas filtradas (`uncompromised`) queda **apagada en
+  las pruebas** (`phpunit.xml`): salía a Internet en cada validación. En
+  producción sigue activa.
+- **Pendiente:** invitación firmada por correo en vez de contraseña escrita en
+  el alta, planes y límites (`laravel/pennant`), facturación y back-office.
 
 ### Cola de envío offline (§13.3)
 

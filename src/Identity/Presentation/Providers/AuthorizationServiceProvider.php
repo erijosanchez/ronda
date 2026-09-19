@@ -22,6 +22,7 @@ use Ronda\Identity\Domain\Models\User;
 use Ronda\Insights\Application\Policies\ExportPolicy;
 use Ronda\Insights\Application\Policies\ReportPolicy;
 use Ronda\Insights\Domain\Models\Export;
+use Ronda\Platform\Application\Policies\OnboardingPolicy;
 use Ronda\Scheduling\Application\Policies\SchedulePolicy;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Scheduling\Domain\Models\Schedule;
@@ -62,6 +63,10 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
         // Los KPI no cuelgan de un modelo: son una lectura del conjunto. La
         // habilidad se define aqui y la decision sigue en una Policy (regla 4).
         Gate::define('view-reports', [ReportPolicy::class, 'view']);
+
+        // Poner en marcha la cuenta tampoco es un registro: es el estado del
+        // cliente entero. Misma forma, misma razon.
+        Gate::define('complete-onboarding', [OnboardingPolicy::class, 'complete']);
 
         // El propietario del tenant pasa por encima de toda Policy.
         //

@@ -17,6 +17,8 @@ use Ronda\Insights\Application\Queries\KpiSummaryQuery;
 use Ronda\Insights\Application\Queries\RepeatOffendersQuery;
 use Ronda\Insights\Application\Queries\SiteRankingQuery;
 use Ronda\Insights\Domain\ValueObjects\KpiSummary;
+use Ronda\Platform\Application\Queries\OnboardingProgressQuery;
+use Ronda\Platform\Domain\ValueObjects\OnboardingProgress;
 
 /**
  * El panel: donde se aterriza y donde se mide.
@@ -64,6 +66,7 @@ final class Dashboard extends Component
                 'userName' => (string) auth()->user()?->name,
                 'tenantName' => (string) tenant('name'),
                 'roles' => $this->roleLabels(),
+                'onboarding' => $this->onboarding(),
             ]);
         }
 
@@ -74,6 +77,7 @@ final class Dashboard extends Component
             'userName' => (string) auth()->user()?->name,
             'tenantName' => (string) tenant('name'),
             'roles' => $this->roleLabels(),
+            'onboarding' => $this->onboarding(),
             'periods' => self::PERIODS,
             'summary' => resolve(KpiSummaryQuery::class)($filtro),
             'ranking' => resolve(SiteRankingQuery::class)($filtro),
@@ -85,6 +89,24 @@ final class Dashboard extends Component
             'to' => $filtro->to,
             'emptySummary' => new KpiSummary,
         ]);
+    }
+
+    /**
+     * Lo que le falta a la cuenta para estar en marcha, o nada si ya lo esta.
+     *
+     * El panel es donde se aterriza, asi que es donde tiene que estar el aviso
+     * mientras la cuenta esta a medio montar: un asistente al que solo se llega
+     * escribiendo la URL no lo ve nadie.
+     */
+    private function onboarding(): ?OnboardingProgress
+    {
+        if (! (auth()->user()?->can('complete-onboarding') ?? false)) {
+            return null;
+        }
+
+        $avance = resolve(OnboardingProgressQuery::class)();
+
+        return $avance->finished() ? null : $avance;
     }
 
     private function filter(): KpiFilter

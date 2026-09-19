@@ -13,6 +13,8 @@ use Ronda\Identity\Presentation\Providers\IdentityServiceProvider;
 use Ronda\Insights\Presentation\Providers\InsightsServiceProvider;
 use Ronda\Notifications\Infrastructure\Providers\NotificationsEventServiceProvider;
 use Ronda\Notifications\Presentation\Providers\NotificationsServiceProvider;
+use Ronda\Platform\Infrastructure\Providers\PlatformEventServiceProvider;
+use Ronda\Platform\Presentation\Providers\PlatformServiceProvider;
 use Ronda\Scheduling\Presentation\Providers\SchedulingServiceProvider;
 use Ronda\Submissions\Presentation\Providers\SubmissionsServiceProvider;
 use Ronda\Workflow\Presentation\Providers\WorkflowServiceProvider;
@@ -20,6 +22,8 @@ use Ronda\Workflow\Presentation\Providers\WorkflowServiceProvider;
 return [
     AppServiceProvider::class,
     TenancyServiceProvider::class,
+    PlatformServiceProvider::class,
+    PlatformEventServiceProvider::class,
     AuthorizationServiceProvider::class,
     FortifyServiceProvider::class,
     IdentityServiceProvider::class,
