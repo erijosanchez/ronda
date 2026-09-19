@@ -76,6 +76,10 @@ final class SubmissionForm extends Component
             return;
         }
 
+        // El borrador ya no hace falta: lo escucha el componente del
+        // navegador y lo borra de IndexedDB (sec. 13.3).
+        $this->dispatch('submission-saved');
+
         session()->flash('status', __('Report submitted.'));
         $this->redirectRoute('submissions.show', ['submission' => $submission], navigate: true);
     }
@@ -92,6 +96,8 @@ final class SubmissionForm extends Component
             )) : [],
             'site' => $this->obligation->site,
             'template' => Template::query()->find($this->obligation->template_id),
+            // La clave del borrador en el dispositivo.
+            'obligationId' => $this->obligation->getKey(),
         ]);
     }
 

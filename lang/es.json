@@ -391,5 +391,8 @@
     "Decided": "Decidido",
     "Minutes late": "Minutos de retraso",
     "Revision": "Revisión",
-    "site": "sede"
+    "site": "sede",
+    "No connection": "Sin conexión",
+    "What you write is saved on this device. To submit you need signal.": "Lo que escribas se guarda en este dispositivo. Para entregar hace falta señal.",
+    "We restored what you had written on this device.": "Recuperamos lo que habías escrito en este dispositivo."
 }

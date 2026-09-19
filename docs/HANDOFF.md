@@ -1,4 +1,4 @@
-# Dónde nos quedamos — 21 de septiembre de 2026
+# Dónde nos quedamos — 22 de septiembre de 2026
 
 Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo de punta a
 punta: se programa, se entrega con evidencia, se revisa, el sistema avisa y
@@ -25,11 +25,11 @@ PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO
 
 ## Por dónde seguir (acordado con el cliente)
 
-**Siguiente: la PWA con captura offline.** El plan marca la adopción del
-encargado de local como el riesgo real número uno del producto (§18, riesgo 5):
-si el encargado no puede llenar su reporte con mala señal, no lo llena. Después
-va la fase 2 (onboarding self-service, planes y límites, facturación,
-back-office, sitio público) y solo entonces la API, que es fase 3.
+**Siguiente: terminar la captura offline** — hoy la PWA se instala, sobrevive
+sin señal y guarda el borrador en el dispositivo, pero **entregar todavía exige
+red**. Falta la cola de envío (outbox) con sus fotos, que es la otra mitad del
+§13.3. Después va la fase 2 (onboarding self-service, planes y límites,
+facturación, back-office, sitio público) y solo entonces la API, que es fase 3.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
 fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~15 %**, fases 3 a 5 sin
@@ -64,6 +64,39 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### PWA instalable y borrador en el dispositivo (§13.3, ADR 0010)
+
+El usuario diario es un encargado con un teléfono de gama media y señal
+irregular; el plan marca su adopción como el riesgo número uno del producto.
+
+- **Instalable**: `public/manifest.webmanifest` (arranca en `/pendientes`,
+  modo `standalone`) con iconos propios, incluido uno `maskable` para el
+  recorte de Android. El manifiesto va **también en el login**, que es la
+  primera pantalla que ve el encargado y desde donde va a instalarla.
+- **Service worker** (`public/sw.js`): guarda el bundle y los iconos al usarlos,
+  vuelve a servir las pantallas ya visitadas cuando no hay red, y cae en
+  `public/offline.html` (que se explica sola, sin bundle ni servidor) para lo
+  que nunca se abrió.
+- **Nada privado se queda en el teléfono**: no se guarda nada que no sea GET, ni
+  el endpoint de Livewire, ni la evidencia, ni las descargas de exportaciones.
+  Al cerrar sesión la página avisa al service worker y se borra la caché de
+  pantallas: un teléfono compartido no puede seguir mostrando los pendientes de
+  quien se fue.
+- **Borrador en IndexedDB** (como pide el §13.3) en el formulario de entrega y
+  en el de corrección: se guarda mientras se escribe y se restaura al volver,
+  con un aviso. Se borra cuando el envío ya está guardado en el servidor. Si
+  IndexedDB falla (modo privado, cuota), se sigue pudiendo entregar: un borrador
+  es una comodidad, no un requisito.
+- **Aviso de sin conexión** en el layout, antes de que alguien intente entregar
+  y se quede mirando una rueda girando.
+- **Lo que las pruebas NO cubren**, y hay que mirar a mano en un móvil: que el
+  navegador ofrezca instalar, que el borrador vuelva tras cerrar la pestaña y
+  que una pantalla vieja se sirva sin red. Lo que sí se sostiene en CI es el
+  contrato: piezas presentes, textos, y que el service worker no cachee nada
+  privado.
+- **Falta la otra mitad**: la cola de envío offline (entregar sin señal y que
+  salga solo al volver), con sus fotos en IndexedDB. Hoy entregar exige red.
 
 ### `Insights` — exportación de envíos (§13)
 

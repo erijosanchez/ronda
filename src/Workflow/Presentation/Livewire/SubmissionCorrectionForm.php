@@ -70,6 +70,9 @@ final class SubmissionCorrectionForm extends Component
             return;
         }
 
+        // El borrador del dispositivo ya no hace falta.
+        $this->dispatch('submission-saved');
+
         session()->flash('status', __('Correction submitted. It is back in review.'));
         $this->redirectRoute('submissions.show', ['submission' => $this->submission], navigate: true);
     }
