@@ -31,6 +31,11 @@ abstract class TenantStatus extends State
             // Alta y conversion.
             ->allowTransition(Trial::class, Active::class)
             ->allowTransition(Trial::class, Archived::class)
+            // Una prueba que termina y cuyo primer cobro falla es, exactamente,
+            // un cliente en mora: quiso pagar y no se pudo. Pasarlo antes por
+            // `active` lo daria por convertido sin haber cobrado nunca, y eso
+            // es lo que despues cuadra mal con la contabilidad.
+            ->allowTransition(Trial::class, PastDue::class)
             // Impago: se avisa, se corta, se recupera.
             ->allowTransition(Active::class, PastDue::class)
             ->allowTransition(PastDue::class, Active::class)

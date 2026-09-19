@@ -9,6 +9,7 @@ use Illuminate\Database\ConnectionInterface;
 use Illuminate\Support\Str;
 use Ronda\Platform\Application\Data\CreateTenantData;
 use Ronda\Platform\Application\Jobs\ProvisionTenantJob;
+use Ronda\Platform\Domain\Billing\BillingCycle;
 use Ronda\Platform\Domain\Models\Plan;
 use Ronda\Platform\Domain\Models\Tenant;
 use Ronda\Platform\Domain\PlanCode;
@@ -30,6 +31,7 @@ final readonly class CreateTenant
     public function __construct(
         private ConnectionInterface $connection,
         private Dispatcher $dispatcher,
+        private StartSubscription $startSubscription,
     ) {}
 
     public function __invoke(CreateTenantData $data): Tenant
@@ -55,11 +57,33 @@ final readonly class CreateTenant
 
             $tenant->domains()->create(['domain' => $data->domain]);
 
+            $this->openTrial($tenant);
+
             return $tenant;
         });
 
         $this->dispatcher->dispatch(new ProvisionTenantJob($tenant, $data));
 
         return $tenant;
+    }
+
+    /**
+     * Abre la prueba gratuita del cliente nuevo (sec. 3.6).
+     *
+     * Si el catalogo de planes no esta sembrado, no hay suscripcion que abrir y
+     * no pasa nada: el cliente opera sin limites hasta que alguien le ponga un
+     * plan. Un alta que revienta porque falta una semilla seria peor.
+     */
+    private function openTrial(Tenant $tenant): void
+    {
+        if ($tenant->plan_id === null) {
+            return;
+        }
+
+        ($this->startSubscription)(
+            $tenant,
+            PlanCode::default(),
+            BillingCycle::tryFrom((string) config('billing.cycle', 'monthly')) ?? BillingCycle::Monthly,
+        );
     }
 }

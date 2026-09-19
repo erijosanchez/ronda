@@ -6,8 +6,10 @@ namespace Ronda\Platform\Infrastructure\Providers;
 
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Support\ServiceProvider;
+use Ronda\Platform\Domain\Contracts\BillingGateway;
 use Ronda\Platform\Domain\Contracts\PlanProvider;
 use Ronda\Platform\Domain\Events\TenantProvisioned;
+use Ronda\Platform\Infrastructure\Billing\BillingGatewayFactory;
 use Ronda\Platform\Infrastructure\Listeners\MarkTenantProvisioned;
 use Ronda\Platform\Infrastructure\Plans\CurrentTenantPlan;
 
@@ -26,6 +28,13 @@ final class PlatformEventServiceProvider extends ServiceProvider
         // Una sola instancia por peticion: asi el plan se lee de la central una
         // vez, aunque lo pregunten tres Actions y una pantalla.
         $this->app->scoped(PlanProvider::class, CurrentTenantPlan::class);
+
+        // La pasarela la elige la configuracion, y es el unico sitio del
+        // proyecto que sabe que existe Culqi (sec. 15.2).
+        $this->app->bind(
+            BillingGateway::class,
+            static fn ($app): BillingGateway => $app->make(BillingGatewayFactory::class)->make(),
+        );
     }
 
     public function boot(Dispatcher $events): void
