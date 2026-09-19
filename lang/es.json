@@ -394,5 +394,11 @@
     "site": "sede",
     "No connection": "Sin conexión",
     "What you write is saved on this device. To submit you need signal.": "Lo que escribas se guarda en este dispositivo. Para entregar hace falta señal.",
-    "We restored what you had written on this device.": "Recuperamos lo que habías escrito en este dispositivo."
+    "We restored what you had written on this device.": "Recuperamos lo que habías escrito en este dispositivo.",
+    "1 report waiting to be sent": "1 reporte esperando para enviarse",
+    "reports waiting to be sent": "reportes esperando para enviarse",
+    "They are saved on this device and will be sent on their own when there is signal.": "Están guardados en este dispositivo y se enviarán solos cuando haya señal.",
+    "Retry": "Reintentar",
+    "Discard": "Descartar",
+    "This device could not save the report. Try again.": "Este dispositivo no pudo guardar el reporte. Inténtalo otra vez."
 }

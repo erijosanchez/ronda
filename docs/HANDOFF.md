@@ -1,4 +1,4 @@
-# Dónde nos quedamos — 22 de septiembre de 2026
+# Dónde nos quedamos — 23 de septiembre de 2026
 
 Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo de punta a
 punta: se programa, se entrega con evidencia, se revisa, el sistema avisa y
@@ -25,11 +25,13 @@ PLANTILLA ✅ → PROGRAMACIÓN ✅ → OBLIGACIÓN ✅ → ENVÍO ✅ → FLUJO
 
 ## Por dónde seguir (acordado con el cliente)
 
-**Siguiente: terminar la captura offline** — hoy la PWA se instala, sobrevive
-sin señal y guarda el borrador en el dispositivo, pero **entregar todavía exige
-red**. Falta la cola de envío (outbox) con sus fotos, que es la otra mitad del
-§13.3. Después va la fase 2 (onboarding self-service, planes y límites,
-facturación, back-office, sitio público) y solo entonces la API, que es fase 3.
+**La captura offline está cerrada** (§13.3): la PWA se instala, sobrevive sin
+señal, guarda el borrador y ahora **entrega sin red**, con la cola de envío que
+sale sola al volver la señal. Falta verlo en un móvil de verdad antes del
+piloto (ver abajo).
+
+**Siguiente: la fase 2** — onboarding self-service, planes y límites,
+facturación, back-office y sitio público. La API es fase 3 y va después.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
 fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~15 %**, fases 3 a 5 sin
@@ -65,6 +67,35 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 
 ## Lo que se hizo en las últimas sesiones
 
+### Cola de envío offline (§13.3)
+
+Cierra la captura offline: un reporte lleno sin señal ya no se pierde ni espera
+a nadie.
+
+- **La entrega entera se guarda en el dispositivo** (respuestas, fotos y firma,
+  en IndexedDB) y sale sola al volver la red: al cargar la página y al recuperar
+  la señal.
+- **Idempotencia de verdad**: cada entrega lleva una huella (`client_token`) que
+  genera el teléfono *antes* de mandarla, con restricción única en la base. Si
+  la respuesta se pierde por el camino, el reintento devuelve el **mismo** envío
+  en vez de crear otro.
+- **La cola sabe cuándo parar**: solo reintenta un fallo de red. Un 403, un 409
+  (plazo cerrado) o un 422 (respuestas inválidas) se marcan como rechazados y se
+  muestran en pendientes con su motivo y un botón para descartarlos. Un 401/419
+  (sesión caducada) sí espera: no es culpa de la entrega.
+- **Puerta propia** `POST /pendientes/{obligation}/entregar`, con la misma
+  Policy que el formulario y la misma Action (`SubmitReport`): la entrega por
+  cola no es una entrega distinta.
+- Las fotos van en base64 con la **ubicación del momento en que se llenó el
+  reporte**, no la de cuando se envía.
+- Los archivos se leen de los `input` del formulario y no de Livewire: sin red,
+  la subida temporal de Livewire nunca llegó a ocurrir.
+- **Un fallo que destapó una prueba:** `validate()` devuelve solo lo validado, y
+  las coordenadas no estaban declaradas, así que llegaban y se perdían en el
+  propio controlador.
+- **Pendiente:** Background Sync (que la cola salga con la aplicación cerrada)
+  y un tope de tamaño de la cola en el dispositivo.
+
 ### PWA instalable y borrador en el dispositivo (§13.3, ADR 0010)
 
 El usuario diario es un encargado con un teléfono de gama media y señal
@@ -90,13 +121,12 @@ irregular; el plan marca su adopción como el riesgo número uno del producto.
   es una comodidad, no un requisito.
 - **Aviso de sin conexión** en el layout, antes de que alguien intente entregar
   y se quede mirando una rueda girando.
-- **Lo que las pruebas NO cubren**, y hay que mirar a mano en un móvil: que el
-  navegador ofrezca instalar, que el borrador vuelva tras cerrar la pestaña y
-  que una pantalla vieja se sirva sin red. Lo que sí se sostiene en CI es el
-  contrato: piezas presentes, textos, y que el service worker no cachee nada
-  privado.
-- **Falta la otra mitad**: la cola de envío offline (entregar sin señal y que
-  salga solo al volver), con sus fotos en IndexedDB. Hoy entregar exige red.
+- **Lo que las pruebas NO cubren**, y hay que mirar a mano en un móvil antes
+  del piloto: que el navegador ofrezca instalar, que el borrador vuelva tras
+  cerrar la pestaña, que una pantalla vieja se sirva sin red y que una entrega
+  hecha en modo avión salga sola al recuperar la señal. Lo que sí se sostiene en
+  CI es el contrato: piezas presentes, textos, que el service worker no cachee
+  nada privado, y el endpoint de la cola de punta a punta.
 
 ### `Insights` — exportación de envíos (§13)
 

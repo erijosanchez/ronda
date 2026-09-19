@@ -65,6 +65,9 @@ final readonly class SubmitReport
     /**
      * @param  array<string, mixed>  $answers
      * @param  array<string, list<EvidenceUpload>>  $evidence  archivos por clave de campo
+     * @param  string|null  $clientToken  huella del envio que genera el dispositivo
+     *                                    antes de mandarlo, para reconocer sus
+     *                                    reintentos (sec. 13.3)
      *
      * @throws CannotSubmit
      * @throws InvalidAnswers
@@ -75,8 +78,19 @@ final readonly class SubmitReport
         array $answers,
         ?CarbonImmutable $now = null,
         array $evidence = [],
+        ?string $clientToken = null,
     ): Submission {
         $now ??= CarbonImmutable::now('UTC');
+
+        // El reintento de un telefono que no llego a ver la respuesta no crea
+        // un envio nuevo: devuelve el que ya entro.
+        if ($clientToken !== null) {
+            $anterior = Submission::query()->where('client_token', $clientToken)->first();
+
+            if ($anterior instanceof Submission) {
+                return $anterior;
+            }
+        }
 
         /** @var list<string> $escritas rutas ya subidas al bucket */
         $escritas = [];
@@ -85,8 +99,8 @@ final readonly class SubmitReport
             // Closure con `&` y no arrow function: una arrow function captura por
             // valor, y la limpieza de abajo veria la lista vacia.
             return $this->connection->transaction(
-                function () use ($obligation, $author, $answers, $now, $evidence, &$escritas): Submission {
-                    return $this->submit($obligation, $author, $answers, $now, $evidence, $escritas);
+                function () use ($obligation, $author, $answers, $now, $evidence, $clientToken, &$escritas): Submission {
+                    return $this->submit($obligation, $author, $answers, $now, $evidence, $escritas, $clientToken);
                 },
             );
         } catch (Throwable $e) {
@@ -108,6 +122,7 @@ final readonly class SubmitReport
         CarbonImmutable $now,
         array $evidence,
         array &$escritas,
+        ?string $clientToken = null,
     ): Submission {
         // Se relee con bloqueo. Dos pestanas enviando a la vez leerian las
         // dos `pending` sin el; con el, la segunda espera y ve `fulfilled`.
@@ -137,6 +152,7 @@ final readonly class SubmitReport
             'site_id' => $obligation->site_id,
             'obligation_id' => $obligation->getKey(),
             'author_id' => $author->getKey(),
+            'client_token' => $clientToken,
             'state' => Submitted::$name,
             'data' => $limpias,
             'submitted_at' => $now,
