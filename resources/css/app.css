@@ -18,3 +18,9 @@
     --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
         'Segoe UI Symbol', 'Noto Color Emoji';
 }
+
+/* Alpine oculta con `x-cloak` lo que no debe verse hasta que arranque: sin
+   esta regla, el aviso de sin conexión parpadea en cada carga. */
+[x-cloak] {
+    display: none !important;
+}

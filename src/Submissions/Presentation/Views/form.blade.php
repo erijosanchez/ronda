@@ -15,6 +15,15 @@
          hay ubicacion. --}}
     <div x-data="deviceLocation" class="hidden" aria-hidden="true"></div>
 
+    {{-- El borrador vive en IndexedDB (sec. 13.3): si se va la señal, la
+         batería o la pestaña, lo escrito sigue aquí al volver. --}}
+    <div x-data="submissionDraft('obligacion-{{ $obligationId }}')">
+        <div x-show="restored" x-cloak class="mb-4">
+            <flux:callout icon="arrow-uturn-left">
+                <flux:callout.text>{{ __('We restored what you had written on this device.') }}</flux:callout.text>
+            </flux:callout>
+        </div>
+
     <form wire:submit="submit" class="space-y-6">
         @include('submissions::partials.fields')
 
@@ -23,4 +32,5 @@
             <flux:button variant="ghost" :href="route('submissions.pending')" wire:navigate>{{ __('Cancel') }}</flux:button>
         </div>
     </form>
+    </div>
 </div>

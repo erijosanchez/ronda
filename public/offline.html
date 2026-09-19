@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sin conexión · Ronda</title>
+
+    <!--
+        Esta página la sirve el service worker cuando no hay red, así que no
+        puede depender del bundle ni de una petición al servidor: todo va aquí
+        dentro.
+    -->
+    <style>
+        :root { color-scheme: light dark; }
+
+        body {
+            margin: 0;
+            min-height: 100dvh;
+            display: grid;
+            place-items: center;
+            padding: 1.5rem;
+            font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+            background: #fafafa;
+            color: #18181b;
+        }
+
+        main { max-width: 26rem; text-align: center; }
+
+        h1 { font-size: 1.5rem; margin: 0 0 .75rem; }
+
+        p { margin: 0 0 .75rem; line-height: 1.5; color: #52525b; }
+
+        button {
+            margin-top: 1rem;
+            padding: .625rem 1.25rem;
+            font: inherit;
+            font-weight: 600;
+            color: #fafafa;
+            background: #18181b;
+            border: 0;
+            border-radius: .5rem;
+            cursor: pointer;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body { background: #18181b; color: #fafafa; }
+            p { color: #a1a1aa; }
+            button { background: #fafafa; color: #18181b; }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h1>Sin conexión</h1>
+
+        <p>
+            No hay señal ahora mismo. Lo que ya habías escrito en un reporte
+            <strong>está guardado en este teléfono</strong> y seguirá ahí cuando vuelvas.
+        </p>
+
+        <p>
+            Las pantallas que abriste antes se pueden seguir viendo; para entregar
+            un reporte hace falta señal.
+        </p>
+
+        <button type="button" onclick="location.reload()">Reintentar</button>
+    </main>
+</body>
+</html>

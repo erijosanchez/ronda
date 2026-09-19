@@ -19,6 +19,13 @@
 
     <div x-data="deviceLocation" class="hidden" aria-hidden="true"></div>
 
+    <div x-data="submissionDraft('correccion-{{ $submission->id }}')">
+        <div x-show="restored" x-cloak class="mb-4">
+            <flux:callout icon="arrow-uturn-left">
+                <flux:callout.text>{{ __('We restored what you had written on this device.') }}</flux:callout.text>
+            </flux:callout>
+        </div>
+
     <form wire:submit="submit" class="space-y-6">
         @include('submissions::partials.fields')
 
@@ -27,4 +34,5 @@
             <flux:button variant="ghost" :href="route('submissions.show', $submission)" wire:navigate>{{ __('Cancel') }}</flux:button>
         </div>
     </form>
+    </div>
 </div>

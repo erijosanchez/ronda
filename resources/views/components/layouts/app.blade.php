@@ -27,6 +27,14 @@
 
     <title>{{ isset($title) ? $title.' · '.config('app.name') : config('app.name') }}</title>
 
+    {{-- PWA instalable (ADR 0010). El manifiesto y el service worker son
+         archivos estáticos de `public/`: el service worker tiene que servirse
+         desde la raíz para poder controlar toda la aplicación. --}}
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+    <meta name="theme-color" content="#18181b">
+    <meta name="mobile-web-app-capable" content="yes">
+
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @fluxAppearance(['nonce' => $nonce])
 </head>
@@ -100,6 +108,19 @@
     </flux:header>
 
     <flux:main>
+        {{-- Sin señal: se avisa antes de que alguien intente entregar y se
+             quede mirando una rueda girando. --}}
+        <div x-data="connectionStatus" x-cloak>
+            <div x-show="offline" class="mb-4">
+                <flux:callout variant="warning" icon="signal-slash">
+                    <flux:callout.heading>{{ __('No connection') }}</flux:callout.heading>
+                    <flux:callout.text>
+                        {{ __('What you write is saved on this device. To submit you need signal.') }}
+                    </flux:callout.text>
+                </flux:callout>
+            </div>
+        </div>
+
         {{ $slot }}
     </flux:main>
 
