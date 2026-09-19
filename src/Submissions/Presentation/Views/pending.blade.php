@@ -10,6 +10,57 @@
         <flux:subheading>{{ __('What your sites have to report, sorted by deadline.') }}</flux:subheading>
     </div>
 
+    {{-- Entregas que esperan señal. Vive en el dispositivo, así que se pinta
+         con Alpine y no con Livewire: el servidor no sabe que existen. --}}
+    <div x-data="outboxQueue" x-cloak>
+        <template x-if="envios.length > 0">
+            <div class="space-y-3">
+                <flux:callout variant="warning" icon="cloud-arrow-up">
+                    <flux:callout.heading x-text="envios.length === 1
+                        ? @js(__('1 report waiting to be sent'))
+                        : envios.length + ' ' + @js(__('reports waiting to be sent'))"></flux:callout.heading>
+
+                    <flux:callout.text>
+                        {{ __('They are saved on this device and will be sent on their own when there is signal.') }}
+                    </flux:callout.text>
+                </flux:callout>
+
+                <ul class="space-y-2">
+                    <template x-for="envio in envios" :key="envio.token">
+                        <li class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-zinc-200 p-3 dark:border-zinc-700">
+                            <div class="min-w-0">
+                                <flux:text variant="strong" x-text="envio.titulo"></flux:text>
+                                <flux:text class="text-xs" x-text="envio.sede"></flux:text>
+                                <template x-if="envio.rechazado">
+                                    <flux:text class="text-xs text-red-600" x-text="envio.motivo"></flux:text>
+                                </template>
+                            </div>
+
+                            <div class="flex gap-2">
+                                <template x-if="! envio.rechazado">
+                                    <flux:button size="sm" variant="ghost" icon="arrow-path" x-on:click="reintentar()">
+                                        {{ __('Retry') }}
+                                    </flux:button>
+                                </template>
+
+                                <template x-if="envio.rechazado">
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="trash"
+                                        x-on:click="descartar(envio.token)"
+                                    >
+                                        {{ __('Discard') }}
+                                    </flux:button>
+                                </template>
+                            </div>
+                        </li>
+                    </template>
+                </ul>
+            </div>
+        </template>
+    </div>
+
     @if ($toCorrect->isNotEmpty())
         <div class="space-y-3">
             <flux:heading size="lg">{{ __('Rejected, to correct') }}</flux:heading>

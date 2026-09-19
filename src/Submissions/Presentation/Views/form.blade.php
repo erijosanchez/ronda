@@ -15,6 +15,16 @@
          hay ubicacion. --}}
     <div x-data="deviceLocation" class="hidden" aria-hidden="true"></div>
 
+    {{-- Sin señal, la entrega entera (respuestas y fotos) se guarda en el
+         dispositivo y sale sola al volver la red (sec. 13.3). --}}
+    <div x-data="offlineSubmit({
+        url: '{{ route('submissions.store', $obligationId) }}',
+        pendientes: '{{ route('submissions.pending') }}',
+        titulo: @js($template?->name),
+        sede: @js($site?->name),
+        errorMessage: @js(__('This device could not save the report. Try again.')),
+    })">
+
     {{-- El borrador vive en IndexedDB (sec. 13.3): si se va la señal, la
          batería o la pestaña, lo escrito sigue aquí al volver. --}}
     <div x-data="submissionDraft('obligacion-{{ $obligationId }}')">
@@ -32,5 +42,6 @@
             <flux:button variant="ghost" :href="route('submissions.pending')" wire:navigate>{{ __('Cancel') }}</flux:button>
         </div>
     </form>
+    </div>
     </div>
 </div>

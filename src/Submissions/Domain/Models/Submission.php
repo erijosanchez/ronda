@@ -31,6 +31,7 @@ use Spatie\ModelStates\HasStates;
  * @property int $site_id
  * @property int|null $obligation_id
  * @property int $author_id
+ * @property string|null $client_token
  * @property int|null $reviewer_id
  * @property Carbon|null $review_started_at
  * @property Carbon|null $reviewed_at
@@ -50,7 +51,7 @@ final class Submission extends Model
     /** @var list<string> */
     protected $fillable = [
         'template_id', 'template_version_id', 'site_id', 'obligation_id', 'author_id',
-        'state', 'data', 'submitted_at', 'is_late', 'minutes_late',
+        'state', 'data', 'submitted_at', 'is_late', 'minutes_late', 'client_token',
         'reviewer_id', 'review_started_at', 'reviewed_at', 'revision',
     ];
 
