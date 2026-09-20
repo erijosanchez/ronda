@@ -494,5 +494,9 @@
     "Payment is arranged by transfer for now. We will let you know when you can pay by card from here.": "Por ahora el pago se coordina por transferencia. Te avisamos cuando puedas pagar con tarjeta desde aquí.",
     "Manual payment: waiting for the transfer to be confirmed.": "Pago manual: esperando que se confirme la transferencia.",
     "The card was declined.": "La tarjeta fue rechazada.",
-    "Ronda · :period": "Ronda · :period"
+    "Ronda · :period": "Ronda · :period",
+    "Page not found": "Página no encontrada",
+    "This address does not exist": "Esta dirección no existe",
+    "Check the address of your company. If you do not remember it, ask whoever administers your account.": "Revisa la dirección de tu empresa. Si no la recuerdas, pregúntale a quien administra tu cuenta.",
+    "Go to :app": "Ir a :app"
 }
