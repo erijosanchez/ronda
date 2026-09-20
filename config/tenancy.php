@@ -139,13 +139,24 @@ return [
         'suffix_storage_path' => true,
 
         /**
-         * By default, asset() calls are made multi-tenant too. You can use global_asset() and mix()
-         * for global, non-tenant-specific assets. However, you might have some issues when using
-         * packages that use asset() calls inside the tenant app. To avoid such issues, you can
-         * disable asset() helper tenancy and explicitly use tenant_asset() calls in places
-         * where you want to use tenant-specific assets (product images, avatars, etc).
+         * Apagado a proposito. Ver RONDA-PLAN-MAESTRO.md sec. 13.1
+         *
+         * Con esto en `true`, TODA llamada a `asset()` dentro de un cliente se
+         * reescribe a `/tenancy/assets/...`, que sirve el almacenamiento
+         * PRIVADO de ese cliente. Eso alcanza tambien al CSS y al JS que genera
+         * `@vite`, que no viven ahi sino en `public/build`: el navegador pedia
+         * la hoja de estilos, recibia un 404, y la aplicacion se veia sin
+         * estilos en el dominio de cada cliente (en el central se veia bien,
+         * que es lo que hizo que tardara en notarse).
+         *
+         * Ronda no sirve NINGUN archivo de cliente por `asset()`: la evidencia
+         * va por una ruta firmada contra un bucket privado (ADR 0009), que es
+         * mas estricto que esta ruta. Asi que no se pierde nada al apagarlo.
+         *
+         * Si algun dia hace falta servir un archivo del cliente por URL
+         * directa, se usa `tenant_asset()` en ese sitio concreto.
          */
-        'asset_helper_tenancy' => true,
+        'asset_helper_tenancy' => false,
     ],
 
     /**
