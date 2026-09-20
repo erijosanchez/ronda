@@ -44,7 +44,7 @@ comercio. **Pasarela elegida: Culqi**; ver `docs/facturacion.md`.
 
 **El piloto está validado de punta a punta** contra el stack real (20 de
 septiembre): registro, provisión, arranque, reporte con evidencia, KPI,
-límites, cobro y aislamiento. Aparecieron **dos fallos reales, ya corregidos**.
+límites, cobro y aislamiento. Aparecieron **tres fallos reales, ya corregidos**.
 El informe completo está en **`docs/validacion-piloto.md`**.
 
 **Lo único que falta para el piloto no es código**: cuatro comprobaciones de la
@@ -88,7 +88,7 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 
 ## Lo que se hizo en las últimas sesiones
 
-### Validación del piloto y dos fallos que destapó (20 de septiembre)
+### Validación del piloto y tres fallos que destapó (20 de septiembre)
 
 El recorrido entero ejecutado contra el stack de verdad. Informe en
 `docs/validacion-piloto.md`; los guiones, en `docs/piloto/`.
@@ -104,6 +104,10 @@ El recorrido entero ejecutado contra el stack de verdad. Informe en
   una letra de más bastaba para dejar de atender a todo el mundo (se vieron
   peticiones de 621 s). **Corregido**: 404 con página propia. La prueba que lo
   fija tarda 0,7 s; sin el arreglo, 274 s.
+- **La aplicación se veía sin estilos dentro de cada cliente** (lo vio el
+  cliente, no la validación): `asset_helper_tenancy` mandaba el CSS y el JS de
+  `@vite` a la ruta del almacenamiento privado del tenant, que devolvía 404.
+  **Corregido**. Lección: un 200 no dice que la pantalla se vea.
 - Verificado de punta a punta: provisión en 7–10 s, ventana horaria de la sede
   correcta en UTC, evidencia con su SHA-256 contrastado contra los bytes de
   MinIO, KPI del día, límite de plantillas de Starter, factura con el mínimo de
