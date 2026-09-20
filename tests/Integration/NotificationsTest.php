@@ -240,6 +240,46 @@ it('avisa a quien revisa cuando llega un envio, y no al que lo entrego', functio
     });
 })->group('notifications');
 
+it('avisa a quien administra cuando la sede no tiene mas revisor que el propio autor', function (): void {
+    // El caso de la empresa chica, que es con la que se empieza: una sede, una
+    // encargada y la duena. La encargada entrega y no puede revisarse a si
+    // misma; si el aviso se quedara en las personas asignadas a la sede, el
+    // reporte esperaria revision sin que se enterara nadie.
+    enAcmeAvisos(function (): void {
+        Notification::fake();
+
+        $obligacion = obligacionDelDia();
+        $encargada = personaDeAviso('encargada@acme.test', RoleName::SiteManager, $obligacion->site);
+        $duena = User::query()->where('email', 'owner@acme.test')->firstOrFail();
+
+        // La duena NO esta asignada a la sede, pero puede revisar el parque.
+        expect($duena->sites()->count())->toBe(0);
+
+        resolve(SubmitReport::class)($obligacion, $encargada, ['monto' => '10'], CarbonImmutable::parse('2026-09-17 20:00', 'UTC'));
+
+        Notification::assertSentToTimes($duena, OperationalNotification::class, 1);
+        Notification::assertNotSentTo($encargada, OperationalNotification::class);
+    });
+})->group('notifications');
+
+it('no molesta a quien administra cuando la sede si tiene revisor', function (): void {
+    // El respaldo es solo eso: con una supervisora asignada, la duena no
+    // recibe nada. Un cliente grande no puede acabar con todos los avisos de
+    // todas sus sedes en el correo de gerencia.
+    enAcmeAvisos(function (): void {
+        Notification::fake();
+
+        $obligacion = obligacionDelDia();
+        $encargada = personaDeAviso('encargada@acme.test', RoleName::SiteManager, $obligacion->site);
+        personaDeAviso('supervisora@acme.test', RoleName::Supervisor, $obligacion->site);
+        $duena = User::query()->where('email', 'owner@acme.test')->firstOrFail();
+
+        resolve(SubmitReport::class)($obligacion, $encargada, ['monto' => '10'], CarbonImmutable::parse('2026-09-17 20:00', 'UTC'));
+
+        Notification::assertNotSentTo($duena, OperationalNotification::class);
+    });
+})->group('notifications');
+
 it('le dice a quien entrego que su reporte fue rechazado, con el motivo', function (): void {
     enAcmeAvisos(function (): void {
         $obligacion = obligacionDelDia();

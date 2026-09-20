@@ -1,4 +1,4 @@
-# Dónde nos quedamos — 23 de septiembre de 2026
+# Dónde nos quedamos — 20 de septiembre de 2026
 
 Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo de punta a
 punta: se programa, se entrega con evidencia, se revisa, el sistema avisa y
@@ -42,6 +42,15 @@ suscripciones, periodos, cobros, reintentos y una pantalla con el historial.
 Corre en modo `manual` (se emite, no se cobra) hasta que haya cuenta de
 comercio. **Pasarela elegida: Culqi**; ver `docs/facturacion.md`.
 
+**El piloto está validado de punta a punta** contra el stack real (20 de
+septiembre): registro, provisión, arranque, reporte con evidencia, KPI,
+límites, cobro y aislamiento. Aparecieron **dos fallos reales, ya corregidos**.
+El informe completo está en **`docs/validacion-piloto.md`**.
+
+**Lo único que falta para el piloto no es código**: cuatro comprobaciones de la
+PWA en un teléfono de verdad (instalar, borrador tras cerrar la pestaña,
+pantalla sin red, entrega en modo avión que sale sola).
+
 **Siguiente: back-office de Ronda** con suplantación auditada (§15.4), y el
 sitio público con precios. La API es fase 3.
 
@@ -78,6 +87,27 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### Validación del piloto y dos fallos que destapó (20 de septiembre)
+
+El recorrido entero ejecutado contra el stack de verdad. Informe en
+`docs/validacion-piloto.md`; los guiones, en `docs/piloto/`.
+
+- **Un reporte entregado no avisaba a nadie** en una empresa de una sede, una
+  encargada y la dueña. Los avisos de revisión salían solo a las personas
+  asignadas a la sede, y la única asignada era quien entregó, que no revisa lo
+  suyo. La dueña podía revisarlo, pero no estaba asignada a ninguna sede.
+  **Corregido**: si nadie asignado puede revisar, el aviso cae a quien
+  administra el parque. Con supervisores asignados no cambia nada.
+- **Un subdominio mal escrito devolvía 500 y bloqueaba al worker 30 s**: el
+  renderizador de errores tarda más de lo que PHP permite, y una dirección con
+  una letra de más bastaba para dejar de atender a todo el mundo (se vieron
+  peticiones de 621 s). **Corregido**: 404 con página propia. La prueba que lo
+  fija tarda 0,7 s; sin el arreglo, 274 s.
+- Verificado de punta a punta: provisión en 7–10 s, ventana horaria de la sede
+  correcta en UTC, evidencia con su SHA-256 contrastado contra los bytes de
+  MinIO, KPI del día, límite de plantillas de Starter, factura con el mínimo de
+  5 sedes, aislamiento entre clientes y 11 pantallas sirviendo con sesión real.
 
 ### Facturación, lista para encenderse (§15.1, §15.2)
 

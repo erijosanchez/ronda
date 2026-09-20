@@ -41,7 +41,10 @@ final readonly class NotificationRecipientsQuery
 
         return match ($audience) {
             Audience::Site => $this->assigned($site, fn (User $user): bool => $this->gate->forUser($user)->allows('submit', $obligation)),
-            Audience::Reviewers => $this->assigned($site, fn (User $user): bool => $this->gate->forUser($user)->allows('viewInbox', Submission::class)),
+            Audience::Reviewers => $this->reviewers(
+                $site,
+                fn (User $user): bool => $this->gate->forUser($user)->allows('viewInbox', Submission::class),
+            ),
             Audience::Administrators => $this->administrators(),
         };
     }
@@ -59,9 +62,43 @@ final readonly class NotificationRecipientsQuery
 
         return match ($audience) {
             Audience::Site => $this->assigned($site, fn (User $user): bool => $this->gate->forUser($user)->allows('correct', $submission)),
-            Audience::Reviewers => $this->assigned($site, fn (User $user): bool => $this->gate->forUser($user)->allows('review', $submission)),
+            Audience::Reviewers => $this->reviewers(
+                $site,
+                fn (User $user): bool => $this->gate->forUser($user)->allows('review', $submission),
+            ),
             Audience::Administrators => $this->administrators(),
         };
+    }
+
+    /**
+     * Quien revisa lo de esta sede.
+     *
+     * Primero, las personas asignadas a ella: son las que llevan esa sede.
+     *
+     * Si ninguna puede —porque la unica asignada es quien entrego, que no
+     * revisa lo suyo, o porque nadie tiene el permiso— se cae a quien
+     * administra el parque entero, que SI puede revisarlo.
+     *
+     * Ese respaldo existe por el caso de una empresa chica, que es justo con
+     * la que se empieza: una sede, un encargado y la duena. Sin el, el reporte
+     * se queda esperando revision y no se entera nadie, que es exactamente lo
+     * que este producto promete que no pasa.
+     *
+     * En una empresa con supervisores asignados no cambia nada: si hay alguien
+     * asignado que puede revisar, el respaldo no se usa y no se avisa de mas.
+     *
+     * @param  callable(User): bool  $puede
+     * @return list<User>
+     */
+    private function reviewers(Site $site, callable $puede): array
+    {
+        $asignados = $this->assigned($site, $puede);
+
+        if ($asignados !== []) {
+            return $asignados;
+        }
+
+        return array_values(array_filter($this->administrators(), $puede));
     }
 
     /**
