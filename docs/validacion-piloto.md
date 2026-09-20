@@ -55,6 +55,12 @@ este producto promete que no pasa.
 a quien administra el parque entero. En una empresa con supervisores asignados
 no cambia nada: el respaldo no se usa y nadie recibe avisos de más.
 
+**Verificado en vivo después del arreglo**: una segunda entrega de la encargada
+generó el aviso a la dueña —«Por revisar: Depósito bancario»— procesado por
+Horizon. Ese aviso va **solo a la campana**, no por correo: `config/notifications.php`
+tiene `submission.awaiting_review` como `database`, para no mandar un correo por
+cada entrega. Si en el piloto se quiere también por correo, es una línea.
+
 ### 2. Un subdominio mal escrito tumbaba al servidor
 
 `acmee.ronda.pe` en vez de `acme.ronda.pe` devolvía **500**, y además el
@@ -86,8 +92,12 @@ que queda entre esto y el piloto**, y no lo puede hacer el código.
   lo correcto; conviene recordarlo al programar la primera ronda de un cliente.
 - **Octane se queda con el código viejo.** Cada cambio de rutas o de `config/`
   necesita `docker compose restart app`. En despliegue hay que dejarlo escrito.
-- **Sin correo saliente configurado** no hay avisos reales; en local salen a
-  Mailpit (`http://localhost:8025`).
+- **Los avisos de «por revisar» no van por correo**, solo a la campana
+  (`config/notifications.php`). Es una decisión, no un olvido: un correo por
+  cada entrega satura. Lo que sí sale por correo es el incumplimiento, la
+  revisión vencida, el rechazo y la exportación lista.
+- **El correo local va a Mailpit** (`http://localhost:8025`). En despliegue hay
+  que configurar un SMTP de verdad antes del piloto.
 
 ## Cliente de prueba
 
