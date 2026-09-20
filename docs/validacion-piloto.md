@@ -17,8 +17,9 @@ contra produccion**.
 ## Veredicto
 
 **El producto aguanta un piloto.** Todo el recorrido funciona de punta a punta.
-Aparecieron **dos fallos reales**, los dos corregidos en esta sesión, y queda
-**una cosa que no se puede validar sin un teléfono**.
+Aparecieron **tres fallos reales**, los tres corregidos en esta sesión —el
+tercero lo vio el cliente, no la validación—, y queda **una cosa que no se
+puede validar sin un teléfono**.
 
 ## Lo que se ejecutó y pasó
 
@@ -38,7 +39,7 @@ Aparecieron **dos fallos reales**, los dos corregidos en esta sesión, y queda
 | PWA | Manifiesto, service worker, página sin conexión e iconos servidos; el SW no cachea Livewire ni evidencia |
 | Privacidad | El bucket de evidencia responde 403 a un anónimo |
 
-## Los dos fallos que aparecieron
+## Los tres fallos que aparecieron
 
 ### 1. Un reporte entregado no avisaba a nadie
 
@@ -70,6 +71,24 @@ atender a todo el mundo: en la validación, peticiones que tardaron **621 s**.
 
 **Corregido**: ahora es un **404** con una página propia que dice qué hacer. La
 prueba que lo fija tarda 0,7 s; sin el arreglo, 274 s.
+
+### 3. La aplicación se veía sin estilos dentro de cada cliente
+
+Lo vio el cliente abriendo el login, no la validación: `asset_helper_tenancy`
+reescribía **toda** llamada a `asset()` —incluidas las de `@vite`— hacia
+`/tenancy/assets/…`, que sirve el almacenamiento privado del cliente. El bundle
+vive en `public/build`, así que el navegador recibía un 404 y la pantalla se
+pintaba en crudo. En el dominio central se veía bien, que es lo que hizo que
+tardara en notarse.
+
+**Corregido**: opción apagada. Ronda no sirve ningún archivo de cliente por
+`asset()` —la evidencia va por ruta firmada contra el bucket privado—, así que
+no se pierde nada.
+
+**Lección para esta validación**: todas las comprobaciones miraban el código de
+respuesta, y la página respondía 200 sin estilos. Un 200 no dice que la pantalla
+se vea. Antes del piloto conviene **abrir las pantallas con los ojos**, no solo
+con curl.
 
 ## Lo que NO se pudo validar aquí
 
