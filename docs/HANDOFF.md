@@ -1,4 +1,4 @@
-# Dónde nos quedamos — 20 de septiembre de 2026
+# Dónde nos quedamos — 21 de septiembre de 2026
 
 Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo de punta a
 punta: se programa, se entrega con evidencia, se revisa, el sistema avisa y
@@ -51,11 +51,16 @@ El informe completo está en **`docs/validacion-piloto.md`**.
 PWA en un teléfono de verdad (instalar, borrador tras cerrar la pestaña,
 pantalla sin red, entrega en modo avión que sale sola).
 
-**Siguiente: back-office de Ronda** con suplantación auditada (§15.4), y el
-sitio público con precios. La API es fase 3.
+**El back-office está listo** (§15.4): cuenta propia del equipo con 2FA
+obligatorio, lista y ficha de clientes, y **suplantación auditada** con motivo
+obligatorio, media hora de límite, banner permanente, registro que no se borra
+y aviso al cliente en el momento.
+
+**Siguiente: el sitio público** con precios, y cerrar lo que quedó pendiente de
+facturación (formulario de tarjeta, webhook, PSE). La API es fase 3.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
-fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~60 %**, fases 3 a 5 sin
+fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~80 %**, fases 3 a 5 sin
 empezar. Para tener un piloto operando falta poco; para vender solo, bastante
 más, y casi todo lo que falta ahí no es código.
 
@@ -73,7 +78,7 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 
 | Módulo | Qué hace | Pantallas |
 |---|---|---|
-| `Platform` | Provisión de tenant, aislamiento de sesión, registro self-service, asistente de arranque, planes, límites y facturación | `/registro` (central), `/bienvenida`, `/plan` |
+| `Platform` | Provisión de tenant, aislamiento, registro self-service, arranque, planes, límites, facturación, back-office y suplantación auditada | `/registro`, `/soporte/clientes` (central), `/bienvenida`, `/plan` |
 | `Identity` | Usuarios, roles, permisos, 2FA, invariantes del propietario | `/usuarios` |
 | `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/zonas`, `/cargos`, `/usuarios/{id}/sedes` |
 | `Forms` | Plantillas versionadas, diseñador visual, publicación, catálogo de arranque | `/plantillas`, `/plantillas/catalogo` |
@@ -87,6 +92,34 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### Back-office y suplantación auditada (§15.4)
+
+El sitio desde donde se da soporte, y la forma legítima de entrar a la cuenta
+de un cliente.
+
+- **Cuenta propia del equipo** (`platform_users`, guard `platform`), separada
+  de los usuarios de cada cliente: si compartieran tabla, un fallo de
+  aislamiento dejaría de ser «un cliente ve datos de otro» para ser «un cliente
+  entra al back-office».
+- **2FA obligatorio**, sin salida: quien no lo tiene configurado no pasa de la
+  pantalla que lo configura. La baja y el segundo factor se comprueban en cada
+  petición, así que dar de baja a alguien lo echa de la sesión abierta.
+- **`/soporte/clientes`** lista con datos de la central; **la ficha** entra a la
+  base de ese cliente y **cuenta** sedes, personas, plantillas y reportes. No
+  lee el contenido de ninguno.
+- **Suplantación con las cuatro condiciones del plan**: motivo obligatorio con
+  mínimo de longitud —lo lee el cliente—, media hora de límite que cierra la
+  sesión sola aunque nadie pulse salir, banner rojo permanente con el motivo y
+  la hora de cierre, y registro en `impersonation_log` que no se borra nunca.
+- **Primero se anota y se avisa; solo después se entrega el vale de entrada.**
+  Si el aviso fallara, nadie entra. Al revés es como se acaba teniendo accesos
+  que el cliente nunca vio.
+- El vale es de **un solo uso** y caduca en un minuto; lo que dura media hora
+  es la sesión, no el enlace. Sin un registro abierto que lo respalde, un vale
+  válido tampoco deja pasar.
+- El aviso al cliente va **por correo además de la campana**: enterarse de que
+  entró alguien de Ronda no puede depender de mirar la campana ese día.
 
 ### Validación del piloto y tres fallos que destapó (20 de septiembre)
 

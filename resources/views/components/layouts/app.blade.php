@@ -116,6 +116,15 @@
     </flux:header>
 
     <flux:main>
+        {{-- Si hay alguien de Ronda dentro de esta cuenta, se ve siempre
+             (sec. 15.4). No se pinta nada si no la hay.
+
+             Va DENTRO de `flux:main` y no suelto en el `body` porque el CSS de
+             Flux convierte en rejilla al elemento que contiene directamente un
+             `flux:main`: un hermano suelto se colocaria como celda y rompería
+             la maquetacion. Aqui queda fijo arriba del contenido igual. --}}
+        <x-impersonation-banner />
+
         {{-- Sin señal: se avisa antes de que alguien intente entregar y se
              quede mirando una rueda girando. --}}
         <div x-data="connectionStatus" x-cloak>

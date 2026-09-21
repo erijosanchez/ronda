@@ -10,6 +10,10 @@ use Livewire\Component;
 use Ronda\Directory\Domain\Models\Site;
 use Ronda\Forms\Domain\Models\Template;
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Platform\Application\Actions\StartImpersonation;
+use Ronda\Platform\Domain\Exceptions\CannotImpersonate;
+use Ronda\Platform\Domain\Models\ImpersonationEntry;
+use Ronda\Platform\Domain\Models\PlatformUser;
 use Ronda\Platform\Domain\Models\Subscription;
 use Ronda\Platform\Domain\Models\Tenant;
 use Ronda\Submissions\Domain\Models\Submission;
@@ -32,9 +36,55 @@ final class BackOfficeTenant extends Component
 {
     public Tenant $tenant;
 
+    /** A quien se va a suplantar. */
+    public string $impersonateUserId = '';
+
+    /** Por que. Obligatorio y con minimo: lo va a leer el cliente. */
+    public string $reason = '';
+
     public function mount(Tenant $tenant): void
     {
         $this->tenant = $tenant;
+    }
+
+    /**
+     * Entra a la cuenta del cliente. RONDA-PLAN-MAESTRO.md sec. 15.4
+     *
+     * Valida, invoca la Action y devuelve (regla 1). El motivo, el limite de
+     * tiempo, el registro y el aviso al cliente los pone StartImpersonation:
+     * si vivieran aqui, la primera API que entrara por otro lado se los
+     * saltaria.
+     */
+    public function impersonate(StartImpersonation $start): void
+    {
+        $actor = auth('platform')->user();
+
+        if (! $actor instanceof PlatformUser) {
+            return;
+        }
+
+        $this->validate([
+            'impersonateUserId' => ['required', 'integer'],
+            'reason' => ['required', 'string', 'min:'.(int) config('platform.impersonation.min_reason', 15), 'max:500'],
+        ]);
+
+        try {
+            $destino = $start(
+                actor: $actor,
+                tenant: $this->tenant,
+                userId: (int) $this->impersonateUserId,
+                reason: $this->reason,
+                ip: request()->ip(),
+                userAgent: (string) request()->userAgent(),
+            );
+        } catch (CannotImpersonate $e) {
+            $this->addError('reason', $e->getMessage());
+
+            return;
+        }
+
+        // Fuera de la aplicacion: el enlace lleva al dominio del cliente.
+        $this->redirect($destino, navigate: false);
     }
 
     public function render(): View
@@ -43,11 +93,47 @@ final class BackOfficeTenant extends Component
 
         return view('platform::back-office.tenant', [
             'subscription' => $suscripcion,
+            'users' => $this->impersonableUsers(),
+            'minReason' => (int) config('platform.impersonation.min_reason', 15),
+            'minutes' => (int) config('platform.impersonation.minutes', 30),
+            'history' => ImpersonationEntry::query()
+                ->where('tenant_id', $this->tenant->id)
+                ->with('platformUser')
+                ->latest('started_at')
+                ->limit(10)
+                ->get(),
             'invoices' => $suscripcion instanceof Subscription
                 ? $suscripcion->invoices()->orderByDesc('period_start')->limit(12)->get()
                 : collect(),
             'usage' => $this->usage(),
         ]);
+    }
+
+    /**
+     * Las personas del cliente a las que se puede suplantar.
+     *
+     * @return list<array{id: int, label: string}>
+     */
+    private function impersonableUsers(): array
+    {
+        if (! $this->tenant->isReady()) {
+            return [];
+        }
+
+        try {
+            return $this->tenant->run(static fn (): array => User::query()
+                ->orderBy('name')
+                ->get(['id', 'name', 'email'])
+                ->map(static fn (User $u): array => [
+                    'id' => (int) $u->id,
+                    'label' => $u->name.' · '.$u->email,
+                ])
+                ->all());
+        } catch (Throwable $e) {
+            report($e);
+
+            return [];
+        }
     }
 
     /**

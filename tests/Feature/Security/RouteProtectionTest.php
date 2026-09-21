@@ -44,6 +44,11 @@ $publicRoutes = [
     // sesion del equipo Y segundo factor.
     'soporte/acceso',
 
+    // Entrada de soporte a la cuenta de un cliente (sec. 15.4). El vale es la
+    // credencial: de un solo uso, caduca en un minuto y no sirve sin un
+    // registro abierto que diga quien entra y por que.
+    'suplantacion/{token}',
+
     'sanctum/csrf-cookie',
     'storage/{path}',
 ];

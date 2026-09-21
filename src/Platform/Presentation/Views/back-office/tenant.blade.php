@@ -92,7 +92,70 @@
         </div>
     </div>
 
-    <div class="rounded-xl border border-dashed border-zinc-300 p-5 text-sm text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
-        {{ __('To see what the client sees, impersonation is coming: with a mandatory reason, a time limit, a visible banner and a notice to the owner.') }}
+    <div class="rounded-xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 class="font-medium">{{ __('Enter the account') }}</h2>
+        <p class="mt-1 text-sm text-zinc-600 dark:text-zinc-400">
+            {{ __('The client is notified right away, the session lasts :minutes minutes and everything is logged.', ['minutes' => $minutes]) }}
+        </p>
+
+        @if ($users === [])
+            <p class="mt-4 text-sm text-amber-700 dark:text-amber-300">
+                {{ __('There is nobody to enter as.') }}
+            </p>
+        @else
+            <form wire:submit="impersonate" class="mt-4 space-y-4">
+                <div>
+                    <label for="impersonateUserId" class="block text-sm font-medium">{{ __('Enter as') }}</label>
+                    <select id="impersonateUserId" wire:model="impersonateUserId" required
+                            class="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800">
+                        <option value="">{{ __('Choose someone') }}</option>
+                        @foreach ($users as $persona)
+                            <option value="{{ $persona['id'] }}">{{ $persona['label'] }}</option>
+                        @endforeach
+                    </select>
+                    @error('impersonateUserId')
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <div>
+                    <label for="reason" class="block text-sm font-medium">{{ __('Reason') }}</label>
+                    <textarea id="reason" wire:model="reason" rows="2" required
+                              placeholder="{{ __('Ticket 128: the report from yesterday does not show up in their inbox') }}"
+                              class="mt-1 block w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"></textarea>
+                    <p class="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
+                        {{ __('At least :min characters. The client reads this.', ['min' => $minReason]) }}
+                    </p>
+                    @error('reason')
+                        <p class="mt-1 text-sm text-red-600 dark:text-red-400">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <button type="submit"
+                        class="rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700">
+                    {{ __('Enter the account') }}
+                </button>
+            </form>
+        @endif
+
+        @if ($history->isNotEmpty())
+            <h3 class="mt-6 text-sm font-medium">{{ __('Previous entries') }}</h3>
+
+            <ul class="mt-2 space-y-2 text-sm">
+                @foreach ($history as $entrada)
+                    <li class="border-t border-zinc-100 pt-2 dark:border-zinc-800">
+                        <span class="font-medium">{{ $entrada->platformUser?->name ?? '—' }}</span>
+                        <span class="text-zinc-500 dark:text-zinc-400">
+                            · {{ $entrada->started_at->timezone('America/Lima')->format('d/m/Y H:i') }}
+                            · {{ $entrada->impersonated_user_email }}
+                            @if ($entrada->ended_at === null)
+                                · <span class="text-red-600 dark:text-red-400">{{ __('open') }}</span>
+                            @endif
+                        </span>
+                        <p class="text-zinc-600 dark:text-zinc-400">{{ $entrada->reason }}</p>
+                    </li>
+                @endforeach
+            </ul>
+        @endif
     </div>
 </div>

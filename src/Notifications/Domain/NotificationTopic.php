@@ -31,6 +31,15 @@ enum NotificationTopic: string
     /** Termino (o fallo) una exportacion encargada. */
     case ExportReady = 'export_ready';
 
+    /**
+     * Alguien de Ronda entro en la cuenta del cliente para darle soporte.
+     *
+     * Este NO es un aviso de operacion: es de transparencia (sec. 15.4). Que
+     * el cliente se entere no es cortesia, es lo que hace legitima la
+     * suplantacion.
+     */
+    case ImpersonationStarted = 'impersonation_started';
+
     public function label(): string
     {
         return __('notification-topics.'.$this->value);

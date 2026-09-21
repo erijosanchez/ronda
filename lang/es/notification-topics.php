@@ -12,4 +12,5 @@ return [
     'submission_approved' => 'Envío aprobado',
     'submission_rejected' => 'Envío rechazado',
     'export_ready' => 'Exportación',
+    'impersonation_started' => 'Acceso de soporte',
 ];
