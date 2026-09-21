@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Ronda\Identity\Domain\Models\User;
+use Ronda\Platform\Domain\Models\PlatformUser;
 
 return [
 
@@ -44,6 +45,17 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        /*
+         | El back-office de Ronda (sec. 15.4). Guard propio y no un rol dentro
+         | de `web`: quien da soporte no es usuario de ningun cliente, y su
+         | sesion no puede confundirse con la de nadie. Los dos guards conviven
+         | porque el back-office solo existe en el dominio central.
+         */
+        'platform' => [
+            'driver' => 'session',
+            'provider' => 'platform_users',
+        ],
     ],
 
     /*
@@ -67,6 +79,11 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
+        ],
+
+        'platform_users' => [
+            'driver' => 'eloquent',
+            'model' => PlatformUser::class,
         ],
 
         // 'users' => [

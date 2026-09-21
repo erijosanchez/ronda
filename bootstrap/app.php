@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Ronda\Platform\Presentation\Http\Middleware\EnsureBackOfficeAccess;
 use Ronda\Platform\Presentation\Http\Middleware\SecurityHeaders;
 
 return Application::configure(basePath: dirname(__DIR__))
@@ -23,6 +24,11 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->append(SecurityHeaders::class);
 
         $middleware->alias([
+            // Se llama `auth.back-office` y no `back-office` a proposito: es
+            // autenticacion, y asi RouteProtectionTest —que busca middleware
+            // de auth— lo reconoce como tal en vez de dar por desprotegidas
+            // las rutas del equipo.
+            'auth.back-office' => EnsureBackOfficeAccess::class,
             'role' => Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,

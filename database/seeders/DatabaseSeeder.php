@@ -28,6 +28,10 @@ final class DatabaseSeeder extends Seeder
         // aplicar. Van antes del corte de produccion y son idempotentes.
         $this->call(PlanSeeder::class);
 
+        // La cuenta de soporte es de desarrollo: el propio seeder se niega a
+        // correr en produccion.
+        $this->call(PlatformUserSeeder::class);
+
         if (app()->isProduction()) {
             $this->command?->warn('DatabaseSeeder solo siembra datos de desarrollo. Omitido en produccion.');
 
