@@ -536,5 +536,22 @@
     "Last report: :when": "Último reporte: :when",
     "No subscription yet.": "Todavía no hay suscripción.",
     "Trial until :date": "En prueba hasta el :date",
-    "To see what the client sees, impersonation is coming: with a mandatory reason, a time limit, a visible banner and a notice to the owner.": "Para ver lo que ve el cliente llega la suplantación: con motivo obligatorio, límite de tiempo, aviso visible y notificación a su propietario."
+    "To see what the client sees, impersonation is coming: with a mandatory reason, a time limit, a visible banner and a notice to the owner.": "Para ver lo que ve el cliente llega la suplantación: con motivo obligatorio, límite de tiempo, aviso visible y notificación a su propietario.",
+    "Enter the account": "Entrar a la cuenta",
+    "The client is notified right away, the session lasts :minutes minutes and everything is logged.": "Al cliente se le avisa en el acto, la sesión dura :minutes minutos y todo queda registrado.",
+    "There is nobody to enter as.": "No hay nadie como quien entrar.",
+    "Enter as": "Entrar como",
+    "Choose someone": "Elige a alguien",
+    "Reason": "Motivo",
+    "Ticket 128: the report from yesterday does not show up in their inbox": "Ticket 128: el reporte de ayer no le aparece en la bandeja",
+    "At least :min characters. The client reads this.": "Mínimo :min caracteres. Esto lo lee el cliente.",
+    "Previous entries": "Accesos anteriores",
+    "open": "abierto",
+    "Ronda support is inside this account.": "Soporte de Ronda está dentro de esta cuenta.",
+    "Reason: :reason": "Motivo: :reason",
+    "Until :time": "Hasta las :time",
+    "Leave the account": "Salir de la cuenta",
+    "The support session has ended.": "La sesión de soporte terminó.",
+    "Ronda support entered your account": "Soporte de Ronda entró a tu cuenta",
+    ":who from Ronda support is going to look at your account until :until. Reason: :reason": ":who, de soporte de Ronda, va a revisar tu cuenta hasta las :until. Motivo: :reason"
 }

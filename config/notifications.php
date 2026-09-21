@@ -28,6 +28,9 @@ return [
         NotificationTopic::SubmissionRejected->value => ['database', 'mail'],
         // Una exportacion tarda minutos: quien la pidio ya se fue a otra cosa.
         NotificationTopic::ExportReady->value => ['database', 'mail'],
+        // Por correo siempre: enterarse de que entro alguien de Ronda no puede
+        // depender de que el cliente mire la campana ese dia.
+        NotificationTopic::ImpersonationStarted->value => ['database', 'mail'],
     ],
 
     /*

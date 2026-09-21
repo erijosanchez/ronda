@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
+use Ronda\Platform\Presentation\Http\EnterImpersonationController;
+use Ronda\Platform\Presentation\Http\Middleware\EndsExpiredImpersonation;
 use Ronda\Platform\Presentation\Http\Middleware\EnsureSessionBelongsToTenant;
 use Stancl\Tenancy\Middleware\InitializeTenancyByDomain;
 use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
@@ -51,11 +53,23 @@ Route::middleware([
         ->group(base_path('vendor/laravel/fortify/routes/routes.php'));
 
     /*
+     | Entrada de soporte (sec. 15.4). Publica porque el vale ES la credencial:
+     | exigir sesion aqui seria pedir la sesion que se viene a abrir. Es de un
+     | solo uso, caduca en un minuto, y sin registro abierto no deja pasar.
+     | Esta en la lista blanca de RouteProtectionTest.
+     */
+    Route::get('/suplantacion/{token}', EnterImpersonationController::class)
+        ->middleware('throttle:10,1')
+        ->name('impersonation.enter');
+
+    /*
      | Zona autenticada. Cada modulo aporta su propio archivo de rutas; ninguno
      | declara middleware por su cuenta, para que quien entra se decida en un
      | solo sitio.
      */
-    Route::middleware(['auth'])->group(function (): void {
+    // `EndsExpiredImpersonation` va DESPUES de `auth`: solo tiene sentido con
+    // sesion abierta, y lo que hace es cerrarla cuando se acabo el tiempo.
+    Route::middleware(['auth', EndsExpiredImpersonation::class])->group(function (): void {
         require __DIR__.'/../src/Platform/Presentation/routes-tenant.php';
         require __DIR__.'/../src/Insights/Presentation/routes.php';
         require __DIR__.'/../src/Directory/Presentation/routes.php';

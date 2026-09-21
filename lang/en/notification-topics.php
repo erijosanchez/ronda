@@ -10,4 +10,5 @@ return [
     'submission_approved' => 'Submission approved',
     'submission_rejected' => 'Submission rejected',
     'export_ready' => 'Export',
+    'impersonation_started' => 'Support access',
 ];

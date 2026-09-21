@@ -184,6 +184,10 @@ return [
      * understand which ones you want to enable.
      */
     'features' => [
+        // La suplantacion (sec. 15.4) NO necesita esta «feature»: lo unico que
+        // aporta es el macro `tenancy()->impersonate()`, y Ronda crea el vale a
+        // mano para no depender de que este encendida. Lo que si se usa es
+        // UserImpersonation::makeResponse(), que es estatico.
         // Stancl\Tenancy\Features\UserImpersonation::class,
         // Stancl\Tenancy\Features\UniversalRoutes::class,
         // Stancl\Tenancy\Features\TenantConfig::class, // https://tenancyforlaravel.com/docs/v3/features/tenant-config

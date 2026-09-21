@@ -71,6 +71,31 @@ final readonly class NotificationRecipientsQuery
     }
 
     /**
+     * Quien ve el parque entero: el ultimo peldano. `viewAll` es de SitePolicy,
+     * y el propietario pasa por OwnerGate.
+     *
+     * Es publico porque tambien lo usa el aviso de suplantacion (sec. 15.4),
+     * que no cuelga de ninguna obligacion ni de ningun envio: avisa a quien
+     * manda en la cuenta de que alguien de Ronda entro en ella.
+     *
+     * @return list<User>
+     */
+    public function administrators(): array
+    {
+        $administradores = [];
+
+        // Por lotes: un cliente grande tiene cientos de usuarios y esto corre
+        // dentro de un job, no en una pantalla.
+        foreach (User::query()->lazy(200) as $user) {
+            if ($this->gate->forUser($user)->allows('viewAll', Site::class)) {
+                $administradores[] = $user;
+            }
+        }
+
+        return $administradores;
+    }
+
+    /**
      * Quien revisa lo de esta sede.
      *
      * Primero, las personas asignadas a ella: son las que llevan esa sede.
@@ -113,26 +138,5 @@ final readonly class NotificationRecipientsQuery
         $usuarios = $site->users()->get()->all();
 
         return array_values(array_filter($usuarios, $puede));
-    }
-
-    /**
-     * Quien ve el parque entero: el ultimo peldano. `viewAll` es de SitePolicy,
-     * y el propietario pasa por OwnerGate.
-     *
-     * @return list<User>
-     */
-    private function administrators(): array
-    {
-        $administradores = [];
-
-        // Por lotes: un cliente grande tiene cientos de usuarios y esto corre
-        // dentro de un job, no en una pantalla.
-        foreach (User::query()->lazy(200) as $user) {
-            if ($this->gate->forUser($user)->allows('viewAll', Site::class)) {
-                $administradores[] = $user;
-            }
-        }
-
-        return $administradores;
     }
 }
