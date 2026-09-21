@@ -39,6 +39,11 @@ $publicRoutes = [
     'registro',
     'registro/{tenant}/preparando',
 
+    // Acceso del equipo de Ronda (sec. 15.4). Es la puerta del back-office:
+    // no puede exigir la sesion que sirve para abrir. Detras de ella todo pide
+    // sesion del equipo Y segundo factor.
+    'soporte/acceso',
+
     'sanctum/csrf-cookie',
     'storage/{path}',
 ];

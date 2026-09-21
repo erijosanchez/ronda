@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace Ronda\Platform\Domain\Models;
 
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Ronda\Platform\Domain\States\TenantStatus;
 use RuntimeException;
 use Spatie\ModelStates\HasStates;
 use Stancl\Tenancy\Contracts\TenantWithDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDatabase;
 use Stancl\Tenancy\Database\Concerns\HasDomains;
+use Stancl\Tenancy\Database\Models\Domain;
 use Stancl\Tenancy\Database\Models\Tenant as BaseTenant;
 
 /**
@@ -75,6 +77,24 @@ final class Tenant extends BaseTenant implements TenantWithDatabase
     public function isReady(): bool
     {
         return $this->provisioned_at !== null;
+    }
+
+    /**
+     * Los dominios por los que se llega a este cliente.
+     *
+     * La relacion ya la trae el trait del paquete, pero sin tipo de retorno: el
+     * analisis estatico no la reconoce como relacion y no puede comprobar un
+     * `with('domains')`. Se redeclara con su tipo y respetando el modelo
+     * configurable, que es lo unico que aportaba la del paquete.
+     *
+     * @return HasMany<Domain, $this>
+     */
+    public function domains(): HasMany
+    {
+        /** @var class-string<Domain> $modelo */
+        $modelo = config('tenancy.domain_model', Domain::class);
+
+        return $this->hasMany($modelo, 'tenant_id');
     }
 
     /**

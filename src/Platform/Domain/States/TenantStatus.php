@@ -24,6 +24,22 @@ use Spatie\ModelStates\StateConfig;
  */
 abstract class TenantStatus extends State
 {
+    /**
+     * Como se llama este estado para quien lo lee.
+     *
+     * Vive en la clase base y no en la pantalla porque lo muestran ya dos —el
+     * back-office y, cuando llegue, la ficha de facturacion— y un `match` por
+     * pantalla acaba en dos listas que no dicen lo mismo.
+     */
+    public function label(): string
+    {
+        // `getMorphClass()` devuelve el nombre corto que declara cada estado
+        // (`active`, `past_due`...), que es el mismo con el que se guarda en la
+        // base. Leer `static::$name` a mano funcionaria, pero solo lo declaran
+        // las subclases.
+        return __('tenant-status.'.static::getMorphClass());
+    }
+
     public static function config(): StateConfig
     {
         return parent::config()
