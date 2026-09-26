@@ -17,8 +17,8 @@ contra produccion**.
 ## Veredicto
 
 **El producto aguanta un piloto.** Todo el recorrido funciona de punta a punta.
-Aparecieron **tres fallos reales**, los tres corregidos en esta sesión —el
-tercero lo vio el cliente, no la validación—, y queda **una cosa que no se
+Aparecieron **cuatro fallos reales**, todos corregidos —dos de ellos los vio el
+cliente abriendo el navegador, no la validación—, y queda **una cosa que no se
 puede validar sin un teléfono**.
 
 ## Lo que se ejecutó y pasó
@@ -39,7 +39,7 @@ puede validar sin un teléfono**.
 | PWA | Manifiesto, service worker, página sin conexión e iconos servidos; el SW no cachea Livewire ni evidencia |
 | Privacidad | El bucket de evidencia responde 403 a un anónimo |
 
-## Los tres fallos que aparecieron
+## Los cuatro fallos que aparecieron
 
 ### 1. Un reporte entregado no avisaba a nadie
 
@@ -89,6 +89,24 @@ no se pierde nada.
 respuesta, y la página respondía 200 sin estilos. Un 200 no dice que la pantalla
 se vea. Antes del piloto conviene **abrir las pantallas con los ojos**, no solo
 con curl.
+
+### 4. La misma lección, otra vez: un 200 no dice que la pantalla se vea
+
+Al publicar el sitio público volvió a pasar lo mismo por otro motivo: el CSS
+estaba **sin reconstruir**, así que el HTML nuevo usaba clases que Tailwind no
+había generado y la portada salía desarmada. La página respondía 200.
+
+**Corregido en el proceso, no en el código**: `docs/piloto/validar-http.sh`
+ahora descarga la hoja de estilos que enlaza la portada y comprueba que
+contiene una clase que la portada usa. Y el README dice, con sus dos líneas,
+lo que hay que repetir al trabajar:
+
+```bash
+npm run build                 # después de tocar una vista o el CSS
+docker compose restart app    # después de tocar rutas o config/
+```
+
+Las dos fallan en silencio, que es exactamente lo que las hace peligrosas.
 
 ## Lo que NO se pudo validar aquí
 

@@ -23,6 +23,7 @@ use Illuminate\Support\Facades\Route;
  */
 $publicRoutes = [
     '/',                          // portada
+    'precios',                    // precios: es lo que se viene a leer
     'up',                         // health check de Laravel
     'login',
     'logout',

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Ronda\Platform\Presentation\Http\BackOfficeLogoutController;
+use Ronda\Platform\Presentation\Http\PublicSiteController;
 use Ronda\Platform\Presentation\Livewire\BackOfficeLogin;
 use Ronda\Platform\Presentation\Livewire\BackOfficeTenant;
 use Ronda\Platform\Presentation\Livewire\BackOfficeTenants;
@@ -21,6 +22,13 @@ use Ronda\Platform\Presentation\Livewire\TenantProvisioning;
 | —cuantas cuentas se crean por hora desde una IP— esta en el componente,
 | porque el envio de un formulario Livewire no pasa por esta ruta.
 */
+
+/*
+| Sitio publico (sec. 15.3). Portada y precios: lo unico que ve quien todavia
+| no es cliente. Los precios salen de la tabla `plans`, no del HTML.
+*/
+Route::get('/', [PublicSiteController::class, 'home'])->name('home');
+Route::get('/precios', [PublicSiteController::class, 'pricing'])->name('pricing');
 
 Route::middleware('throttle:30,1')->group(function (): void {
     Route::get('/registro', RegisterForm::class)->name('register.tenant');
