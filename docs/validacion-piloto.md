@@ -8,7 +8,10 @@ Los dos guiones estan en `docs/piloto/` y se repiten con:
 
 ```bash
 docker compose exec -T app php artisan tinker --execute="require '/app/docs/piloto/validar-piloto.php';"
-bash docs/piloto/validar-http.sh <subdominio>.localhost
+bash docs/piloto/validar-http.sh <dominio> [clave] [correo] [otro-cliente]
+
+# Contra el cliente de demostración:
+bash docs/piloto/validar-http.sh demo.localhost password-de-desarrollo owner@demo.test
 ```
 
 Crean un cliente de prueba y borran el de la corrida anterior: **no se ejecutan
@@ -98,7 +101,17 @@ había generado y la portada salía desarmada. La página respondía 200.
 
 **Corregido en el proceso, no en el código**: `docs/piloto/validar-http.sh`
 ahora descarga la hoja de estilos que enlaza la portada y comprueba que
-contiene una clase que la portada usa. Y el README dice, con sus dos líneas,
+contiene una clase que la portada usa.
+
+Y al añadir esa comprobación salieron **dos mentiras del propio guion**, que
+son peores que un fallo porque enseñan verde:
+
+- **Daba por abierta una sesión que nunca se abrió.** Un login fallido también
+  responde 302 —de vuelta al login—, y el guion solo miraba el código. Ahora
+  mira **a dónde** redirige: si no va al panel, no hubo sesión.
+- **Seguía el enlace absoluto del CSS**, que Laravel arma con la cabecera
+  `Host` que manda el propio curl, sin puerto. Iba al puerto 80 y parecía que
+  el archivo no existía. Ahora usa solo la ruta. Y el README dice, con sus dos líneas,
 lo que hay que repetir al trabajar:
 
 ```bash
