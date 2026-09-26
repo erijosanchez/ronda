@@ -1,4 +1,4 @@
-# Dónde nos quedamos — 21 de septiembre de 2026
+# Dónde nos quedamos — 26 de septiembre de 2026
 
 Estado del proyecto: **fase 0 cerrada; fase 1 con el motor completo de punta a
 punta: se programa, se entrega con evidencia, se revisa, el sistema avisa y
@@ -56,11 +56,16 @@ obligatorio, lista y ficha de clientes, y **suplantación auditada** con motivo
 obligatorio, media hora de límite, banner permanente, registro que no se borra
 y aviso al cliente en el momento.
 
-**Siguiente: el sitio público** con precios, y cerrar lo que quedó pendiente de
-facturación (formulario de tarjeta, webhook, PSE). La API es fase 3.
+**El sitio público está publicado** (§15.3, §3.6): portada, `/precios` y el
+enlace al registro. Los precios salen de la tabla `plans`, no del HTML: el
+número que se publica y el que se cobra son el mismo.
+
+**Siguiente: cerrar lo que quedó pendiente de facturación** (formulario de
+tarjeta, webhook, PSE de comprobantes), que depende de la cuenta Culqi. La API
+es fase 3.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
-fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~80 %**, fases 3 a 5 sin
+fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~90 %**, fases 3 a 5 sin
 empezar. Para tener un piloto operando falta poco; para vender solo, bastante
 más, y casi todo lo que falta ahí no es código.
 
@@ -92,6 +97,25 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### Sitio público con precios (§15.3, §3.6)
+
+Lo que ve quien todavía no es cliente: portada y `/precios`.
+
+- **Los precios salen de la tabla `plans`**, no del HTML. El número que se
+  publica y el que se cobra tienen que ser el mismo, y escrito en una vista se
+  separarían el día que alguien cambie la tarifa. Hay una prueba que sube el
+  precio en la base y comprueba que la página lo dice.
+- **El plan cotizado no se publica**: no tiene precio de lista, y enseñar uno
+  sería inventárselo. Sí se dice que existe.
+- **Sin Livewire ni Flux**: quien llega por primera vez no tiene por qué
+  descargar un framework para leer tres párrafos. Solo la hoja de estilos.
+- **No hay enlace de «entrar»** en el dominio central: la sesión se abre en la
+  dirección de cada cliente, y un `/login` aquí llevaría a un 404 — la peor
+  forma de recibir a alguien. Tiene su prueba.
+- Las preguntas frecuentes responden lo que de verdad se pregunta: qué cuenta
+  como sede activa, si se cobra por usuario, si hay contrato, y qué pasa con
+  los datos al irse.
 
 ### Back-office y suplantación auditada (§15.4)
 

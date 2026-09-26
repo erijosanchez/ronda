@@ -16,6 +16,18 @@ npm run build                                  # assets
 `db:seed` deja listo un cliente de demostración con su propia base de datos,
 sus roles y un usuario propietario.
 
+### Dos cosas que hay que repetir al trabajar
+
+```bash
+npm run build                 # después de tocar una vista o el CSS
+docker compose restart app    # después de tocar rutas o config/
+```
+
+Las dos fallan en silencio, que es lo que las hace molestas: **la página sigue
+respondiendo 200**. Sin reconstruir, Tailwind no genera las clases que usa el
+HTML nuevo y la pantalla se ve desarmada; sin reiniciar, Octane sigue sirviendo
+las rutas y la configuración anteriores.
+
 ## Dónde entrar
 
 La aplicación **no vive en el dominio central**. Cada cliente tiene el suyo, y

@@ -16,12 +16,10 @@ use Illuminate\Support\Facades\Route;
 | RouteProtectionTest recorre la tabla de rutas y falla si alguna se sale.
 */
 
-Route::view('/', 'welcome')->name('home');
-
 /*
- | Alta de clientes nuevos. Es publica por definicion, y por eso es la unica
- | que vive fuera del grupo de abajo: sus dos rutas estan justificadas una por
- | una en la lista blanca de RouteProtectionTest.
+ | El sitio publico y el alta de clientes. Son publicos por definicion, y por
+ | eso viven fuera del grupo de abajo: sus rutas estan justificadas una por una
+ | en la lista blanca de RouteProtectionTest.
  */
 require __DIR__.'/../src/Platform/Presentation/routes-central.php';
 

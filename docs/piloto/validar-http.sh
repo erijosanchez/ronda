@@ -83,7 +83,22 @@ curl -s -m 30 -H "Host: $HOST" "$BASE/sw.js" | grep -q 'evidencia' \
   || mal "el service worker NO excluye la evidencia"
 
 echo
-echo "== G. Privacidad del bucket"
+echo "== G. Los estilos llegan de verdad"
+# Un 200 no dice que la pantalla se vea: si el bundle esta sin reconstruir, el
+# HTML trae clases que no existen en el CSS y la pagina sale desarmada. Paso
+# dos veces; ahora se comprueba.
+PORTADA=$(curl -s -m 30 -H "Host: localhost" "$BASE/")
+CSS_URL=$(echo "$PORTADA" | grep -oE 'href="[^"]*\.css"' | head -1 | sed 's/href="//;s/"//')
+
+if [ -z "$CSS_URL" ]; then
+  mal "la portada no enlaza ninguna hoja de estilos"
+else
+  CSS=$(curl -s -m 30 "$CSS_URL")
+  echo "$CSS" | grep -q 'max-w-5xl'     && ok "el CSS servido incluye las clases que usa la portada"     || mal "el CSS esta sin reconstruir: falta alguna clase de la portada (npm run build)"
+fi
+
+echo
+echo "== H. Privacidad del bucket"
 ANON=$(curl -s -m 20 -o /dev/null -w "%{http_code}" "http://localhost:9000/ronda-evidence/")
 [ "$ANON" = "403" ] || [ "$ANON" = "404" ] \
   && ok "el bucket de evidencia no se lista sin credenciales ($ANON)" \
