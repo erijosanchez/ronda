@@ -88,6 +88,15 @@ it('no deja entrar sin token', function (): void {
     $this->getJson(urlApi('/sites'))->assertUnauthorized();
 })->group('api');
 
+it('responde 401 en JSON aunque no pidan JSON', function (): void {
+    // Una integracion no siempre manda `Accept: application/json`; curl no lo
+    // manda. Sin forzarlo, Laravel redirige al login: un 302 hacia HTML que
+    // quien integra recibe como exito y solo descubre al leer el cuerpo.
+    $this->get(urlApi('/sites'))
+        ->assertUnauthorized()
+        ->assertHeader('content-type', 'application/json');
+})->group('api');
+
 it('no deja entrar con un token inventado', function (): void {
     $this->withToken('no-existe-este-token')
         ->getJson(urlApi('/sites'))

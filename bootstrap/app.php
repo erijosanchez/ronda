@@ -40,6 +40,20 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         /*
+         | La API responde SIEMPRE en JSON, traiga o no cabecera `Accept`
+         | (sec. 13.1).
+         |
+         | Sin esto, una llamada sin token acaba en una redireccion al login:
+         | un 302 hacia HTML que quien integra recibe como «exito» y solo
+         | descubre al intentar leer el cuerpo. El 401 con su cuerpo dice lo
+         | que pasa a la primera. Una integracion no siempre manda `Accept`;
+         | `curl` desde luego no.
+         */
+        $exceptions->shouldRenderJsonWhen(
+            fn (Illuminate\Http\Request $request): bool => $request->is('api/*') || $request->expectsJson(),
+        );
+
+        /*
          | Un subdominio que no es de nadie es un 404, no un error del servidor.
          |
          | Sin esto, escribir mal la direccion —«acmee.ronda.pe»— devuelve un
