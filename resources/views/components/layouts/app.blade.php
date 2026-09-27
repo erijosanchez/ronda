@@ -101,6 +101,10 @@
                 <flux:navlist.item icon="code-bracket" :href="route('api-tokens')" :current="request()->routeIs('api-tokens')">
                     {{ __('Integrations') }}
                 </flux:navlist.item>
+
+                <flux:navlist.item icon="bell-alert" :href="route('webhooks')" :current="request()->routeIs('webhooks')">
+                    {{ __('Webhooks') }}
+                </flux:navlist.item>
             @endcan
         </flux:navlist>
 

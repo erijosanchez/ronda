@@ -6,7 +6,9 @@ namespace Ronda\Api\Presentation\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
+use Ronda\Api\Presentation\Console\RetryWebhooksCommand;
 use Ronda\Api\Presentation\Livewire\ApiTokens;
+use Ronda\Api\Presentation\Livewire\Webhooks;
 
 /**
  * Registra lo que el modulo Api aporta. RONDA-PLAN-MAESTRO.md sec. 13.1
@@ -26,5 +28,10 @@ final class ApiServiceProvider extends ServiceProvider
         $this->loadViewsFrom(__DIR__.'/../Views', 'api');
 
         Livewire::component('api.tokens', ApiTokens::class);
+        Livewire::component('api.webhooks', Webhooks::class);
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([RetryWebhooksCommand::class]);
+        }
     }
 }

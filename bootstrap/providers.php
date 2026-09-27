@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Providers\AppServiceProvider;
 use App\Providers\TenancyServiceProvider;
+use Ronda\Api\Infrastructure\Providers\WebhookEventServiceProvider;
 use Ronda\Api\Presentation\Providers\ApiServiceProvider;
 use Ronda\Directory\Presentation\Providers\DirectoryServiceProvider;
 use Ronda\Evidence\Presentation\Providers\EvidenceServiceProvider;
@@ -40,4 +41,5 @@ return [
     NotificationsServiceProvider::class,
     NotificationsEventServiceProvider::class,
     ApiServiceProvider::class,
+    WebhookEventServiceProvider::class,
 ];

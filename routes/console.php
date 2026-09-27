@@ -61,3 +61,14 @@ Schedule::command('billing:renew')
     ->dailyAt('05:30')
     ->withoutOverlapping()
     ->onOneServer();
+
+// Reintentos de webhooks (sec. 13.2). El calendario de reintentos vive en la
+// base —1, 2, 4, 8 y 16 minutos—, asi que este comando solo tiene que
+// pasar a menudo para recoger lo que ya toca.
+//
+// Cada minuto: esperar mas alargaria el primer reintento, que es justo el que
+// resuelve la mayoria de los fallos pasajeros.
+Schedule::command('webhooks:retry')
+    ->everyMinute()
+    ->withoutOverlapping()
+    ->onOneServer();

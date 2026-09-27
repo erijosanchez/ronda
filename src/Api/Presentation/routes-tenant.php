@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Ronda\Api\Presentation\Livewire\ApiTokens;
+use Ronda\Api\Presentation\Livewire\Webhooks;
 
 /*
 | Rutas del modulo Api DENTRO de la aplicacion del cliente.
@@ -16,3 +17,7 @@ use Ronda\Api\Presentation\Livewire\ApiTokens;
 */
 
 Route::get('/integraciones', ApiTokens::class)->name('api-tokens');
+
+// Los avisos salientes (sec. 13.2). Cuelgan de la misma seccion: quien emite
+// un token es quien configura un webhook.
+Route::get('/integraciones/avisos', Webhooks::class)->name('webhooks');

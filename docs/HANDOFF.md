@@ -63,11 +63,16 @@ número que se publica y el que se cobra son el mismo.
 **La API pública v1 está publicada** (§13.1): token de Sanctum con alcances,
 gobernada por el plan, con cuota por token y documentación en `/docs/api`.
 
-**Siguiente**: webhooks salientes e importadores CSV, que cierran la fase 3.
+**Los webhooks salientes están publicados** (§13.2): el cliente registra a qué
+dirección quiere que Ronda le llame, los avisos van firmados, se reintentan con
+espera creciente y queda un registro consultable con reenvío a mano. La
+referencia para quien integra está en **`docs/webhooks.md`**.
+
+**Siguiente**: importadores CSV de sedes y personas, que cierran la fase 3.
 La facturación sigue esperando la cuenta Culqi.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
-fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~90 %**, fase 3 **~40 %**,
+fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~90 %**, fase 3 **~60 %**,
 fases 4 y 5 sin empezar. Para tener un piloto operando falta poco; para vender solo, bastante
 más, y casi todo lo que falta ahí no es código.
 
@@ -95,11 +100,43 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Notifications` | Recordatorios, escalamiento por SLA, campana in-app y correo | `/notificaciones` |
 | `Evidence` | Fotos, archivos y firma en bucket privado; SHA-256, EXIF, distancia a la sede, URL firmada | `/evidencia/{id}` (firmada) |
 | `Insights` | KPI materializados y exportación de envíos a Excel, en cola | `/panel`, `/exportaciones` |
-| `Api` | API pública v1 con token, alcances, cuota y OpenAPI | `/api/v1/*`, `/integraciones`, `/docs/api` |
+| `Api` | API pública v1 con token, alcances, cuota y OpenAPI; webhooks salientes firmados con reintentos y registro | `/api/v1/*`, `/integraciones`, `/integraciones/avisos`, `/docs/api` |
 
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### Webhooks salientes (§13.2)
+
+Ronda llama al sistema del cliente cuando pasa algo, en vez de obligarle a
+preguntar cada minuto. Cuatro eventos: reporte entregado, aprobado, devuelto y
+obligación vencida sin entrega.
+
+- **Cada aviso va firmado**: HMAC-SHA256 de «marca.cuerpo» en
+  `X-Ronda-Signature`. La marca de tiempo va dentro de lo firmado para que un
+  aviso capturado no se pueda reenviar días después.
+- **Un webhook es una URL que escribe un cliente y a la que llama nuestro
+  servidor**, o sea SSRF servido en bandeja. Por eso: solo `https`, nada de
+  redes privadas ni nombres sin punto, se comprueba la IP a la que resuelve el
+  nombre —no solo el texto—, **no se siguen redirecciones** (la puerta trasera:
+  una URL limpia que responde 302 hacia `127.0.0.1`) y la dirección se vuelve a
+  comprobar **en el momento de llamar**, no solo al guardarla.
+- **El reintento vive en la base, no en la cola**: seis intentos con espera de
+  1, 2, 4, 8 y 16 minutos. Así sobrevive a un reinicio, es consultable y se
+  puede reenviar a mano. Un comando cada minuto recoge lo que ya toca.
+- **Tras 15 fallos seguidos el destino se apaga solo**: golpear cada minuto una
+  URL muerta es maltratar un servidor ajeno.
+- **Registro de entregas** con lo que se mandó, cuándo, cuántos intentos y qué
+  respondió el otro lado, con botón de reenviar. Sin eso, «no me llegó el
+  aviso» es una discusión sin datos.
+- El cuerpo que sale es **el mismo que devuelve la API** para ese recurso: dos
+  formas de decir lo mismo obligarían a escribir dos lectores.
+- De paso, `MarkMissedObligations` ahora sabe **a quién** marcó: un UPDATE
+  masivo no lo decía, y sin eso no había `obligation.missed` que mandar.
+- Una prueba comprueba que el emisor sale con las redirecciones apagadas
+  **leyendo el código**, no la petición: el doble de `Http` tampoco las sigue,
+  así que quitar `withoutRedirecting()` no rompería nada y el agujero volvería
+  en silencio.
 
 ### API pública v1 (§13.1)
 
