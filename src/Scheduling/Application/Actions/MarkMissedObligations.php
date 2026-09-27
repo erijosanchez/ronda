@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Ronda\Scheduling\Application\Actions;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Events\Dispatcher;
+use Ronda\Scheduling\Domain\Events\ObligationMissed;
 use Ronda\Scheduling\Domain\Models\Obligation;
 use Ronda\Scheduling\Domain\States\Missed;
 use Ronda\Scheduling\Domain\States\Pending;
@@ -23,6 +25,10 @@ use Ronda\Scheduling\Domain\States\Pending;
  */
 final readonly class MarkMissedObligations
 {
+    public function __construct(
+        private Dispatcher $events,
+    ) {}
+
     /**
      * @return int cuantas se marcaron
      */
@@ -30,12 +36,31 @@ final readonly class MarkMissedObligations
     {
         $now ??= CarbonImmutable::now('UTC');
 
-        return Obligation::query()
+        // Se leen los identificadores ANTES de actualizar. Cuesta una consulta
+        // mas —con el mismo WHERE, que ya va por indice— y es lo que permite
+        // avisar de cada incumplimiento: un UPDATE masivo no dice a quien
+        // toco, y sin eso no hay webhook `obligation.missed` que mandar.
+        $incumplidas = Obligation::query()
             ->where('status', Pending::$name)
             ->where('closes_at', '<', $now)
+            ->pluck('id')
+            ->all();
+
+        if ($incumplidas === []) {
+            return 0;
+        }
+
+        $marcadas = Obligation::query()
+            ->whereIn('id', $incumplidas)
             ->update([
                 'status' => Missed::$name,
                 'updated_at' => $now,
             ]);
+
+        foreach ($incumplidas as $id) {
+            $this->events->dispatch(new ObligationMissed((int) $id));
+        }
+
+        return $marcadas;
     }
 }
