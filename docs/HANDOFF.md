@@ -60,13 +60,15 @@ y aviso al cliente en el momento.
 enlace al registro. Los precios salen de la tabla `plans`, no del HTML: el
 número que se publica y el que se cobra son el mismo.
 
-**Siguiente: cerrar lo que quedó pendiente de facturación** (formulario de
-tarjeta, webhook, PSE de comprobantes), que depende de la cuenta Culqi. La API
-es fase 3.
+**La API pública v1 está publicada** (§13.1): token de Sanctum con alcances,
+gobernada por el plan, con cuota por token y documentación en `/docs/api`.
+
+**Siguiente**: webhooks salientes e importadores CSV, que cierran la fase 3.
+La facturación sigue esperando la cuenta Culqi.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
-fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~90 %**, fases 3 a 5 sin
-empezar. Para tener un piloto operando falta poco; para vender solo, bastante
+fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~90 %**, fase 3 **~40 %**,
+fases 4 y 5 sin empezar. Para tener un piloto operando falta poco; para vender solo, bastante
 más, y casi todo lo que falta ahí no es código.
 
 **Lo que no puede hacer el código y conviene empezar ya:** el trámite de
@@ -93,10 +95,36 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | `Notifications` | Recordatorios, escalamiento por SLA, campana in-app y correo | `/notificaciones` |
 | `Evidence` | Fotos, archivos y firma en bucket privado; SHA-256, EXIF, distancia a la sede, URL firmada | `/evidencia/{id}` (firmada) |
 | `Insights` | KPI materializados y exportación de envíos a Excel, en cola | `/panel`, `/exportaciones` |
+| `Api` | API pública v1 con token, alcances, cuota y OpenAPI | `/api/v1/*`, `/integraciones`, `/docs/api` |
 
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### API pública v1 (§13.1)
+
+Cada llamada atraviesa cuatro puertas en este orden —cuota, token, plan,
+alcance— y después la Policy de siempre.
+
+- **Token de Sanctum en la base de cada cliente**, no en la central: un token
+  pertenece a una persona, y las personas viven en la base de su cliente.
+- **La API es del plan**: Starter no la trae. Se comprueba en la puerta, no en
+  cada endpoint.
+- **Cada ruta declara su alcance**, y hay un test que recorre la tabla de rutas
+  y falla si alguna no exige token, no declara alcance, declara uno inventado o
+  se salta el plan o la cuota. Es el control que pedía el plan: una ruta nueva
+  no puede nacer abierta por olvido.
+- **El alcance no sustituye a la Policy**: dice qué puede el token, no qué puede
+  la persona. Un token de una encargada sigue viendo solo sus sedes.
+- Filtros en lista blanca (`?filter[id]=` da 400), **paginación por cursor**,
+  cabeceras `X-RateLimit-*` en todas las respuestas y cuota **por token**.
+- **Entregar por la API es la misma entrega**: misma Action, misma validación
+  contra la versión de la plantilla y el mismo `client_token` idempotente.
+- `/integraciones` emite y revoca tokens; se muestran **una sola vez**.
+- Documentación OpenAPI en `/docs/api` (Scramble), con su propio middleware.
+- De paso: el decodificador de evidencia en base64 pasó a ser pieza compartida
+  —entra por dos puertas— y el `ExampleTest` de Laravel se sustituyó por una
+  prueba que sí dice algo: la portada se sirve aunque no haya planes cargados.
 
 ### Sitio público con precios (§15.3, §3.6)
 
