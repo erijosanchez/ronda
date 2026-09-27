@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Support\Facades\Route;
+use Ronda\Api\Presentation\Http\Middleware\ApiRateLimit;
+use Ronda\Api\Presentation\Http\Middleware\EnsureApiIsInPlan;
 use Ronda\Platform\Presentation\Http\EnterImpersonationController;
 use Ronda\Platform\Presentation\Http\Middleware\EndsExpiredImpersonation;
 use Ronda\Platform\Presentation\Http\Middleware\EnsureSessionBelongsToTenant;
@@ -24,6 +27,28 @@ use Stancl\Tenancy\Middleware\PreventAccessFromCentralDomains;
 |
 | Denegar por defecto: los modulos registran aqui dentro del grupo 'auth'.
 */
+
+/*
+| API publica v1 (sec. 13.1).
+|
+| Grupo APARTE del de la aplicacion y sin `web`: aqui no hay sesion, ni
+| cookies, ni CSRF. Se entra con un token de Sanctum, la API tiene que estar en
+| el plan, y cada ruta declara su alcance.
+|
+| El middleware va escrito uno a uno en vez de usar el grupo `api`: este
+| proyecto no registra rutas de API por la via de `withRouting`, asi que ese
+| grupo no esta configurado y apoyarse en el seria apoyarse en un supuesto.
+*/
+Route::prefix('api/v1')
+    ->middleware([
+        SubstituteBindings::class,
+        InitializeTenancyByDomain::class,
+        PreventAccessFromCentralDomains::class,
+        ApiRateLimit::class,
+        'auth:sanctum',
+        EnsureApiIsInPlan::class,
+    ])
+    ->group(base_path('src/Api/Presentation/routes.php'));
 
 Route::middleware([
     'web',
@@ -80,6 +105,7 @@ Route::middleware([
         require __DIR__.'/../src/Evidence/Presentation/routes.php';
         require __DIR__.'/../src/Workflow/Presentation/routes.php';
         require __DIR__.'/../src/Notifications/Presentation/routes.php';
+        require __DIR__.'/../src/Api/Presentation/routes-tenant.php';
     });
 
 });

@@ -24,6 +24,8 @@ use Spatie\ModelStates\HasStates;
  * @property int $site_id
  * @property int $template_id
  * @property Carbon $occurrence_date
+ * @property int|null $submission_id
+ * @property Carbon|null $fulfilled_at
  * @property Carbon $opens_at
  * @property Carbon $due_at
  * @property Carbon $closes_at

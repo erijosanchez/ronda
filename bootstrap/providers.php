@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Providers\AppServiceProvider;
 use App\Providers\TenancyServiceProvider;
+use Ronda\Api\Presentation\Providers\ApiServiceProvider;
 use Ronda\Directory\Presentation\Providers\DirectoryServiceProvider;
 use Ronda\Evidence\Presentation\Providers\EvidenceServiceProvider;
 use Ronda\Forms\Presentation\Providers\FormsServiceProvider;
@@ -38,4 +39,5 @@ return [
     WorkflowServiceProvider::class,
     NotificationsServiceProvider::class,
     NotificationsEventServiceProvider::class,
+    ApiServiceProvider::class,
 ];

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Ronda\Api\Presentation\Http\Middleware\EnsureTokenScope;
 use Ronda\Platform\Presentation\Http\Middleware\EnsureBackOfficeAccess;
 use Ronda\Platform\Presentation\Http\Middleware\SecurityHeaders;
 
@@ -29,6 +30,9 @@ return Application::configure(basePath: dirname(__DIR__))
             // de auth— lo reconoce como tal en vez de dar por desprotegidas
             // las rutas del equipo.
             'auth.back-office' => EnsureBackOfficeAccess::class,
+            // El alcance de un token de la API (sec. 13.1). Se llama `scope`
+            // a secas porque asi se lee en las rutas: `scope:sites:read`.
+            'scope' => EnsureTokenScope::class,
             'role' => Spatie\Permission\Middleware\RoleMiddleware::class,
             'permission' => Spatie\Permission\Middleware\PermissionMiddleware::class,
             'role_or_permission' => Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,

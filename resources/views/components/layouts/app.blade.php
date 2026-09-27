@@ -94,6 +94,14 @@
                     {{ __('Plan') }}
                 </flux:navlist.item>
             @endcan
+
+            {{-- Los tokens de la API los emite quien administra a las personas:
+                 un token hace lo que hace su dueno. --}}
+            @can('manage-api')
+                <flux:navlist.item icon="code-bracket" :href="route('api-tokens')" :current="request()->routeIs('api-tokens')">
+                    {{ __('Integrations') }}
+                </flux:navlist.item>
+            @endcan
         </flux:navlist>
 
         <flux:spacer />

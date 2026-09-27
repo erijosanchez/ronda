@@ -65,11 +65,23 @@ $publicRoutes = [
  * @var list<string>
  */
 $vendorPatterns = [
+    // La API publica (sec. 13.1) tiene su propio guardian:
+    // ApiScopeCoverageTest comprueba que CADA endpoint exige token, declara su
+    // alcance, mira el plan y pasa por la cuota. Aqui se saltan porque su
+    // autenticacion no es `auth` sino `auth:sanctum` sobre otro guard.
+    '#^api/v1/#',
     '#^livewire[-/]#',        // livewire-<hash>/update, /livewire.js, uploads
     '#^flux/#',               // assets de Flux UI
     '#^passkeys/login#',      // reto WebAuthn: publico por definicion
     '#^tenancy/assets/#',     // assets servidos por stancl/tenancy
     '#^horizon#',             // autoriza con su propio gate
+    // La documentacion de la API (sec. 13.1), generada por Scramble. Autoriza
+    // con su propio middleware: abierta en local, y fuera de local solo si el
+    // gate `viewApiDocs` lo permite —que no esta definido, asi que deniega—.
+    // Es documentacion, no datos: describe la forma de la API, que ya se
+    // anuncia en el sitio publico.
+    '#^docs/api#',
+    '#^_scramble/#',
     '#^_debugbar/#',
     '#^_ignition/#',
 ];
