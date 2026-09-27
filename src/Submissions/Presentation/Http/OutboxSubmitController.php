@@ -8,7 +8,7 @@ use Illuminate\Contracts\Auth\Access\Gate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Ronda\Evidence\Application\Data\EvidenceUpload;
+use Ronda\Evidence\Application\DecodeBase64Evidence;
 use Ronda\Identity\Domain\Models\User;
 use Ronda\Platform\Domain\Exceptions\PlanLimitExceeded;
 use Ronda\Scheduling\Domain\Models\Obligation;
@@ -39,8 +39,13 @@ use Ronda\Submissions\Domain\Exceptions\InvalidAnswers;
  */
 final class OutboxSubmitController extends Controller
 {
-    public function __invoke(Request $request, Obligation $obligation, SubmitReport $submit, Gate $gate): JsonResponse
-    {
+    public function __invoke(
+        Request $request,
+        Obligation $obligation,
+        SubmitReport $submit,
+        Gate $gate,
+        DecodeBase64Evidence $decode,
+    ): JsonResponse {
         $gate->authorize('submit', $obligation);
 
         $datos = $request->validate([
@@ -66,7 +71,7 @@ final class OutboxSubmitController extends Controller
                 $obligation,
                 $author,
                 is_array($datos['answers'] ?? null) ? $datos['answers'] : [],
-                evidence: $this->evidence($request, is_array($datos['evidence'] ?? null) ? $datos['evidence'] : []),
+                evidence: $decode(is_array($datos['evidence'] ?? null) ? $datos['evidence'] : [], $request->ip()),
                 clientToken: (string) $datos['client_token'],
             );
         } catch (InvalidAnswers $e) {
@@ -89,45 +94,6 @@ final class OutboxSubmitController extends Controller
             'submission_id' => $submission->id,
             'url' => route('submissions.show', $submission),
         ]);
-    }
-
-    /**
-     * Convierte lo que llego en base64 en archivos, sin escribirlos en disco:
-     * StoreEvidence trabaja con el contenido y es quien decide si valen.
-     *
-     * @param  array<string, array<int, array{name?: string, data?: string}>>  $evidence
-     * @return array<string, list<EvidenceUpload>>
-     */
-    private function evidence(Request $request, array $evidence): array
-    {
-        $porCampo = [];
-
-        foreach ($evidence as $campo => $archivos) {
-            foreach ($archivos as $archivo) {
-                $contenido = base64_decode((string) ($archivo['data'] ?? ''), true);
-
-                if ($contenido === false || $contenido === '') {
-                    continue;
-                }
-
-                $porCampo[(string) $campo][] = new EvidenceUpload(
-                    contents: $contenido,
-                    originalName: (string) ($archivo['name'] ?? 'archivo'),
-                    // La ubicacion la tomo el telefono cuando se lleno el
-                    // reporte, no ahora: puede haberse movido desde entonces.
-                    deviceLatitude: $this->texto($archivo['latitude'] ?? null),
-                    deviceLongitude: $this->texto($archivo['longitude'] ?? null),
-                    ipAddress: $request->ip(),
-                );
-            }
-        }
-
-        return $porCampo;
-    }
-
-    private function texto(mixed $valor): ?string
-    {
-        return is_scalar($valor) ? (string) $valor : null;
     }
 
     /**

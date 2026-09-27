@@ -28,6 +28,7 @@ use Ronda\Identity\Domain\Models\User;
  * @property int $id
  * @property string $code
  * @property string $name
+ * @property Carbon|null $created_at
  * @property int|null $zone_id
  * @property string|null $address
  * @property string|null $latitude decimal: llega como texto, no como float

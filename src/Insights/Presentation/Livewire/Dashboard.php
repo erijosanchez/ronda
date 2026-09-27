@@ -11,6 +11,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 use Ronda\Directory\Domain\Models\Site;
 use Ronda\Forms\Domain\Models\Template;
+use Ronda\Identity\Domain\Models\User;
 use Ronda\Identity\Domain\RoleName;
 use Ronda\Insights\Application\Data\KpiFilter;
 use Ronda\Insights\Application\Queries\KpiSummaryQuery;
@@ -134,7 +135,11 @@ final class Dashboard extends Component
      */
     private function roleLabels(): array
     {
-        $names = auth()->user()?->roles->pluck('name')->all() ?? [];
+        // Desde que el back-office tiene su propio guard, `auth()->user()`
+        // puede ser tambien alguien del equipo de Ronda, que no tiene roles de
+        // cliente. Se comprueba en vez de darlo por hecho.
+        $usuario = auth()->user();
+        $names = $usuario instanceof User ? $usuario->roles->pluck('name')->all() : [];
 
         return array_values(array_map(
             static fn (string $name): string => RoleName::tryFrom($name)?->label() ?? $name,

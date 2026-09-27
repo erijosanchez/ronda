@@ -12,6 +12,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Laravel\Fortify\TwoFactorAuthenticatable;
+use Laravel\Sanctum\HasApiTokens;
 use Ronda\Directory\Domain\Models\Site;
 use Ronda\Directory\Domain\Models\SiteAssignment;
 use Ronda\Identity\Database\Factories\UserFactory;
@@ -33,6 +34,8 @@ use Spatie\Permission\Traits\HasRoles;
  */
 final class User extends Authenticatable
 {
+    use HasApiTokens;
+
     /** @use HasFactory<UserFactory> */
     use HasFactory;
 

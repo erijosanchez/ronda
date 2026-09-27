@@ -6,6 +6,7 @@ namespace Ronda\Identity\Presentation\Providers;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider;
 use Illuminate\Support\Facades\Gate;
+use Ronda\Api\Application\Policies\ApiTokenPolicy;
 use Ronda\Directory\Application\Policies\PositionPolicy;
 use Ronda\Directory\Application\Policies\SitePolicy;
 use Ronda\Directory\Application\Policies\ZonePolicy;
@@ -71,6 +72,10 @@ final class AuthorizationServiceProvider extends AuthServiceProvider
 
         // El plan y el consumo tampoco cuelgan de un modelo: son del cliente.
         Gate::define('view-plan', [PlanPolicy::class, 'view']);
+
+        // Emitir un token de la API equivale a delegar el acceso de quien lo
+        // crea (sec. 13.1). Tampoco cuelga de un modelo.
+        Gate::define('manage-api', [ApiTokenPolicy::class, 'manage']);
 
         // El propietario del tenant pasa por encima de toda Policy.
         //

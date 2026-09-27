@@ -17,6 +17,20 @@ beforeEach(function (): void {
     $this->seed(PlanSeeder::class);
 });
 
+it('sirve la portada aunque no haya ningun plan cargado', function (): void {
+    // Sustituye al ExampleTest que traia Laravel, que pedia `/` sin migrar y
+    // dejo de pasar cuando la portada empezo a consultar la base.
+    //
+    // Lo que comprueba ahora si dice algo: una instalacion recien migrada, sin
+    // planes sembrados todavia, tiene que ensenar la portada igual. Un sitio
+    // publico que revienta porque falta una semilla es un sitio publico caido.
+    Plan::query()->delete();
+
+    $this->get('/')
+        ->assertOk()
+        ->assertSee(__('Know what happened in every branch, today.'));
+});
+
 it('publica los precios que hay en la base', function (): void {
     $starter = Plan::query()->where('code', PlanCode::Starter->value)->firstOrFail();
 
