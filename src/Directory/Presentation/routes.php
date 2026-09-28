@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Illuminate\Support\Facades\Route;
 use Ronda\Directory\Presentation\Livewire\PositionList;
 use Ronda\Directory\Presentation\Livewire\SiteForm;
+use Ronda\Directory\Presentation\Livewire\SiteImport;
 use Ronda\Directory\Presentation\Livewire\SiteList;
 use Ronda\Directory\Presentation\Livewire\UserSiteAssignments;
 use Ronda\Directory\Presentation\Livewire\ZoneForm;
@@ -21,6 +22,10 @@ use Ronda\Directory\Presentation\Livewire\ZoneList;
 
 Route::get('/sedes', SiteList::class)->name('sites.index');
 Route::get('/sedes/nueva', SiteForm::class)->name('sites.create');
+
+// Importar va ANTES de /sedes/{site}/editar, y con su propio segmento: si
+// colgara de /sedes/{site} una sede con codigo «importar» se comeria la ruta.
+Route::get('/sedes/importar', SiteImport::class)->name('sites.import');
 
 // El binding resuelve la sede con el scope de frontera puesto: quien no la
 // tiene asignada recibe un 404 antes de que corra nada.

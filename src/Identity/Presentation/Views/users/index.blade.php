@@ -18,9 +18,15 @@
         </div>
 
         @if ($canManage)
-            <flux:button variant="primary" icon="plus" :href="route('users.create')" wire:navigate>
-                {{ __('New user') }}
-            </flux:button>
+            <div class="flex items-center gap-2">
+                <flux:button icon="arrow-up-tray" :href="route('users.import')" wire:navigate>
+                    {{ __('Import') }}
+                </flux:button>
+
+                <flux:button variant="primary" icon="plus" :href="route('users.create')" wire:navigate>
+                    {{ __('New user') }}
+                </flux:button>
+            </div>
         @endif
     </div>
 

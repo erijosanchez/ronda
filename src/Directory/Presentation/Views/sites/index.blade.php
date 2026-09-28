@@ -12,9 +12,15 @@
         </div>
 
         @if ($canCreate)
-            <flux:button variant="primary" icon="plus" :href="route('sites.create')" wire:navigate>
-                {{ __('New site') }}
-            </flux:button>
+            <div class="flex items-center gap-2">
+                <flux:button icon="arrow-up-tray" :href="route('sites.import')" wire:navigate>
+                    {{ __('Import') }}
+                </flux:button>
+
+                <flux:button variant="primary" icon="plus" :href="route('sites.create')" wire:navigate>
+                    {{ __('New site') }}
+                </flux:button>
+            </div>
         @endif
     </div>
 
