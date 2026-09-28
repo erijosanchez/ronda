@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Route;
 use Ronda\Identity\Presentation\Livewire\UserForm;
+use Ronda\Identity\Presentation\Livewire\UserImport;
 use Ronda\Identity\Presentation\Livewire\UserList;
 
 /*
@@ -17,4 +18,7 @@ use Ronda\Identity\Presentation\Livewire\UserList;
 
 Route::get('/usuarios', UserList::class)->name('users.index');
 Route::get('/usuarios/nuevo', UserForm::class)->name('users.create');
+
+// Antes de /usuarios/{user}/editar: el segmento fijo gana al parametro.
+Route::get('/usuarios/importar', UserImport::class)->name('users.import');
 Route::get('/usuarios/{user}/editar', UserForm::class)->name('users.edit');

@@ -7,6 +7,7 @@ namespace Ronda\Identity\Presentation\Providers;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Ronda\Identity\Presentation\Livewire\UserForm;
+use Ronda\Identity\Presentation\Livewire\UserImport;
 use Ronda\Identity\Presentation\Livewire\UserList;
 
 /**
@@ -24,5 +25,6 @@ final class IdentityServiceProvider extends ServiceProvider
 
         Livewire::component('identity.user-list', UserList::class);
         Livewire::component('identity.user-form', UserForm::class);
+        Livewire::component('identity.user-import', UserImport::class);
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 use Ronda\Directory\Presentation\Livewire\PositionList;
 use Ronda\Directory\Presentation\Livewire\SiteForm;
+use Ronda\Directory\Presentation\Livewire\SiteImport;
 use Ronda\Directory\Presentation\Livewire\SiteList;
 use Ronda\Directory\Presentation\Livewire\UserSiteAssignments;
 use Ronda\Directory\Presentation\Livewire\ZoneForm;
@@ -27,6 +28,7 @@ final class DirectoryServiceProvider extends ServiceProvider
 
         Livewire::component('directory.site-list', SiteList::class);
         Livewire::component('directory.site-form', SiteForm::class);
+        Livewire::component('directory.site-import', SiteImport::class);
         Livewire::component('directory.user-site-assignments', UserSiteAssignments::class);
         Livewire::component('directory.zone-list', ZoneList::class);
         Livewire::component('directory.zone-form', ZoneForm::class);

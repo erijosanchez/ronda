@@ -68,11 +68,16 @@ dirección quiere que Ronda le llame, los avisos van firmados, se reintentan con
 espera creciente y queda un registro consultable con reenvío a mano. La
 referencia para quien integra está en **`docs/webhooks.md`**.
 
-**Siguiente**: importadores CSV de sedes y personas, que cierran la fase 3.
-La facturación sigue esperando la cuenta Culqi.
+**Los importadores CSV están publicados** (§13.2): sedes y personas desde una
+hoja de cálculo, en dos pasos —analizar sin escribir, confirmar todo o nada—.
+La referencia está en **`docs/importar.md`**.
+
+**Siguiente**: integraciones (Sheets/Slack) e informes programados por correo,
+que es lo que queda de la fase 3. La facturación sigue esperando la cuenta
+Culqi.
 
 Avance sobre el alcance del plan, ponderado por las semanas que estima cada
-fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~90 %**, fase 3 **~60 %**,
+fase: fase 0 **100 %**, fase 1 **~90 %**, fase 2 **~90 %**, fase 3 **~75 %**,
 fases 4 y 5 sin empezar. Para tener un piloto operando falta poco; para vender solo, bastante
 más, y casi todo lo que falta ahí no es código.
 
@@ -91,8 +96,8 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 | Módulo | Qué hace | Pantallas |
 |---|---|---|
 | `Platform` | Provisión de tenant, aislamiento, registro self-service, arranque, planes, límites, facturación, back-office y suplantación auditada | `/registro`, `/soporte/clientes` (central), `/bienvenida`, `/plan` |
-| `Identity` | Usuarios, roles, permisos, 2FA, invariantes del propietario | `/usuarios` |
-| `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede | `/sedes`, `/zonas`, `/cargos`, `/usuarios/{id}/sedes` |
+| `Identity` | Usuarios, roles, permisos, 2FA, invariantes del propietario, importación CSV | `/usuarios`, `/usuarios/importar` |
+| `Directory` | Zonas, sedes, cargos, asignación persona ↔ sede, frontera por sede, importación CSV | `/sedes`, `/sedes/importar`, `/zonas`, `/cargos`, `/usuarios/{id}/sedes` |
 | `Forms` | Plantillas versionadas, diseñador visual, publicación, catálogo de arranque | `/plantillas`, `/plantillas/catalogo` |
 | `Scheduling` | Programaciones RRULE, feriados, materialización y replanificación de obligaciones | `/programaciones` |
 | `Submissions` | Entrega de reportes, validación contra la versión, réplica reportable, ficha del envío | `/pendientes`, `/envios/{id}` |
@@ -105,6 +110,34 @@ provisiona tenants reales en cada prueba. Para iterar, `--filter`.
 ---
 
 ## Lo que se hizo en las últimas sesiones
+
+### Importadores CSV de sedes y personas (§13.2)
+
+Para que un cliente con ochenta locales no los dé de alta uno a uno.
+
+- **Dos pasos**: analizar no escribe nada y dice exactamente qué va a pasar
+  —altas, actualizaciones y problemas con su número de fila—; confirmar
+  escribe todo o nada en una transacción. El botón de confirmar no existe
+  mientras quede una fila mala.
+- **Se relee y se replanifica al confirmar**: entre los dos pasos puede haber
+  pasado un rato, y el plan se calcula contra la base de ahora.
+- **Lee lo que exporta Excel en español**, que es lo que de verdad va a llegar:
+  separador `;`, Windows-1252 y BOM. Sin eso, «Ancón» entra roto y el usuario
+  ve un error que no entiende.
+- **Lo que ya existe se actualiza, no se duplica** (sedes por código, personas
+  por correo): reintentar con el archivo entero después de corregir una celda
+  es lo normal, y tiene que ser seguro.
+- **Nadie trae contraseña en el CSV.** Quien entra nuevo recibe una aleatoria
+  que no ve nadie y accede con «olvidé mi contraseña». A quien ya existe no se
+  le toca.
+- **Al propietario no se le importa, y su rol no se concede importando.**
+  `UserPolicy::update` solo deja que el propietario se edite a sí mismo, para
+  que un administrador no pueda quedarse con la cuenta; un CSV no puede ser la
+  puerta de atrás de esa regla.
+- **No inventa nada**: una zona o una sede que no existe se avisa, no se crea.
+  Y una celda `sedes` vacía no le quita las sedes a nadie.
+- Tope de 2000 filas por archivo, plantilla descargable con BOM (para que
+  Excel no rompa las tildes) y lectura en streaming.
 
 ### Webhooks salientes (§13.2)
 
